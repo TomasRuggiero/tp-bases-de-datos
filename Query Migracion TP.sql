@@ -59,7 +59,7 @@ create table THIS_IS_FINE.Factura (
 )
 
 create table THIS_IS_FINE.Sucursal (
-	sucursal_numero nvarchar(255) PRIMARY KEY, -- discutir si esta bien 
+	sucursal_numero bigint PRIMARY KEY, -- discutir si esta bien 
 	-- FK a Localidad
 	sucursal_direccion nvarchar(255),
 	sucursal_telefono nvarchar(255),
@@ -140,6 +140,37 @@ create table THIS_IS_FINE.sillon_material (
 	-- Fk a material
 	material_cantidad decimal(18,2)
 )
+
+create table THIS_IS_FINE.Material (
+    id_material int PRIMARY KEY,
+	--FK a material_tipo
+	material_nombre nvarchar(255),
+	material_descripcion nvarchar(255),
+	material_precio decimal(38,2)
+)
+
+create table THIS_IS_FINE.Madera (
+    --PK/FK id_material
+	madera_color nvarchar(255),
+	madera_dureza nvarchar(255)
+)
+
+create table THIS_IS_FINE.Tela (
+    --PK/FK id_material
+	tela_color nvarchar(255),
+	tela_textura nvarchar(255)
+)
+
+create table THIS_IS_FINE.Relleno (
+    --PK/FK id_material
+	relleno_densidad decimal(38,2)
+)
+
+create table THIS_IS_FINE.tipo_material (
+     tipo_material_id int PRIMARY KEY,
+	 tipo_material_detalle nvarchar(255)
+) /*Ver si dejamos esto así*/
+
 
 /* A DISCUTIR: 
 	- Que hacemos con tipo_material.
