@@ -135,6 +135,12 @@ create table THIS_IS_FINE.detalle_compra (
 	compra_subtotal decimal(18,0)
 )
 
+create table THIS_IS_FINE.sillon_material (
+	--FK a sillon
+	-- Fk a material
+	material_cantidad decimal(18,2)
+)
+
 /* A DISCUTIR: 
 	- Que hacemos con tipo_material.
 	- No estamos reflejando bien la relacion muchos a muchos de sillon-material, deberiamos partir la relacion con tabla intermedia
@@ -202,6 +208,10 @@ WHERE maestra.Cliente_Provincia IS NOT NULL
       FROM THIS_IS_FINE.Localidad Loc
       WHERE Loc.localidad_detalle = maestra.Cliente_Localidad and Loc.localidad_provincia = Prov.provincia_codigo
 	)
+
+
+
+
 
 
 
