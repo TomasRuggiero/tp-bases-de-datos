@@ -145,19 +145,19 @@ create table THIS_IS_FINE.Sillon (
 )
 
 create table THIS_IS_FINE.modelo_sillon (
-	modelo_codigo bigint,
-	modelo_descripcion nvarchar(255),
-	modelo_precio decimal(18,2),
-	CONSTRAINT PK_ModeloSillon PRIMARY KEY (modelo_codigo)
+	sillon_modelo_codigo int IDENTITY(1,1),
+	sillon_modelo_descripcion nvarchar(255),
+	sillon_modelo_precio decimal(18,2),
+	CONSTRAINT PK_ModeloSillon PRIMARY KEY (sillon_modelo_codigo)
 )
 
 create table THIS_IS_FINE.medida_sillon (
-	medida_codigo int,
-	medida_alto decimal(18,2),
-	medida_ancho decimal(18,2),
-	medida_profundidad decimal(18,2),
-	medida_precio decimal(18,2),
-	CONSTRAINT PK_MedidaSillon PRIMARY KEY (medida_codigo)
+	sillon_medida_codigo int IDENTITY(1,1),
+	sillon_medida_alto decimal(18,2),
+	sillon_medida_ancho decimal(18,2),
+	sillon_medida_profundidad decimal(18,2),
+	sillon_medida_precio decimal(18,2),
+	CONSTRAINT PK_MedidaSillon PRIMARY KEY (sillon_medida_codigo)
 )
 
 create table THIS_IS_FINE.Compra (
@@ -225,7 +225,7 @@ create table THIS_IS_FINE.Relleno (
 )
 
 create table THIS_IS_FINE.tipo_material (
-     tipo_material_id int PRIMARY KEY,
+     tipo_material_id int IDENTITY(1,1) PRIMARY KEY,
 	 tipo_material_detalle nvarchar(255)
 	 -- CONSTRAINT PK_TipoMaterial PRIMARY KEY (tipo_material_id)
 ) /*Ver si dejamos esto así*/
@@ -238,8 +238,66 @@ create table THIS_IS_FINE.tipo_material (
 	- tipos de datos para las PKs
 */
 
+/*Insertar Sillón Modelo de la tabla maestra a tabla modelo_sillon*/
+
+CREATE PROCEDURE migrar_modelo_sillon
+AS
+BEGIN
+
+     SET NOCOUNT ON;
+
+     INSERT INTO THIS_IS_FINE.modelo_sillon (
+	      sillon_modelo_descripcion,
+	      sillon_modelo_precio
+     )
+	 SELECT DISTINCT 
+		  sillon_modelo_descripcion,
+		  sillon_modelo_precio
+     FROM gd_esquema.Maestra
+	/*Cómo hacíamos entonces con los NULL?*/
+END;
+
+/*Insertar Medidas Sillón de la tabla maestra a la tabla medida_sillon*/
+
+CREATE PROCEDURE migrar_medida_sillon
+AS
+BEGIN
+
+     SET NOCOUNT ON;
+
+     INSERT INTO THIS_IS_FINE.medida_sillon (
+	     sillon_medida_alto,
+	     sillon_medida_ancho,
+	     sillon_medida_profundidad,
+	     sillon_medida_precio
+	 )
+	 SELECT DISTINCT
+	     sillon_medida_alto,
+	     sillon_medida_ancho,
+	     sillon_medida_profundidad,
+	     sillon_medida_precio 
+     FROM gd_esquema.Maestra
+END;
+
+/*Insertar Tipo Material de la tabla maestra a la tabla tipo_material*/
+
+CREATE PROCEDURE migrar_tipo_material
+AS
+BEGIN
+
+     SET NOCOUNT ON;
+
+     INSERT INTO THIS_IS_FINE.tipo_material(tipo_material_detalle)
+	 SELECT DISTINCT
+	     tipo_material_detalle 
+     FROM gd_esquema.Maestra
+END; /*Después vemos si esto lo dejamos así*/
 
 /*Insertar provincia de la tabla maestra a tabla provincia*/
+
+CREATE PROCEDURE migrar_provincia
+AS
+BEGIN
 INSERT INTO THIS_IS_FINE.Provincia (provincia_detalle)
 SELECT DISTINCT provincia
 FROM (
@@ -250,8 +308,13 @@ FROM (
     SELECT Proveedor_Provincia FROM gd_esquema.Maestra
 ) AS provincias
 WHERE provincia IS NOT NULL;
+END;
 
 /*insertando localidades de proveedor*/
+
+CREATE PROCEDURE migrar_localidades_proveedor
+AS
+BEGIN
 INSERT INTO THIS_IS_FINE.Localidad (localidad_detalle, localidad_provincia)
 SELECT DISTINCT
     maestra.Proveedor_Localidad,
@@ -266,8 +329,13 @@ WHERE maestra.Proveedor_Provincia IS NOT NULL
       FROM THIS_IS_FINE.Localidad Loc
       WHERE Loc.localidad_detalle = maestra.Proveedor_Localidad and Loc.localidad_provincia = Prov.provincia_codigo
   	)
+END;
 
 /*insertando localidades de sucursal*/
+
+CREATE PROCEDURE migrar_localidades_sucursal
+AS
+BEGIN
 INSERT INTO THIS_IS_FINE.Localidad (localidad_detalle, localidad_provincia)
 SELECT DISTINCT
     maestra.Sucursal_Localidad,
@@ -282,8 +350,13 @@ WHERE maestra.Sucursal_Provincia IS NOT NULL
       FROM THIS_IS_FINE.Localidad Loc
       WHERE Loc.localidad_detalle = maestra.Sucursal_Localidad and Loc.localidad_provincia = Prov.provincia_codigo
   	)
+END;
 
 /*insertando localidades de cliente*/
+
+CREATE PROCEDURE migrar_localidades_cliente
+AS
+BEGIN
 INSERT INTO THIS_IS_FINE.Localidad (localidad_detalle, localidad_provincia)
 SELECT DISTINCT
     maestra.Cliente_Localidad,
@@ -298,7 +371,7 @@ WHERE maestra.Cliente_Provincia IS NOT NULL
       FROM THIS_IS_FINE.Localidad Loc
       WHERE Loc.localidad_detalle = maestra.Cliente_Localidad and Loc.localidad_provincia = Prov.provincia_codigo
 	)
-
+END;
 
 
 /* Migracion de Cliente */
