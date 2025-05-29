@@ -94,7 +94,7 @@ create table THIS_IS_FINE.Factura (
 )
 
 create table THIS_IS_FINE.Sucursal (
-	sucursal_numero bigint, -- discutir si esta bien 
+	sucursal_NroSucursal bigint, 
 	-- FK a Localidad
 	sucursal_direccion nvarchar(255),
 	sucursal_telefono nvarchar(255),
@@ -145,7 +145,7 @@ create table THIS_IS_FINE.Sillon (
 )
 
 create table THIS_IS_FINE.modelo_sillon (
-	sillon_modelo_codigo int IDENTITY(1,1),
+	sillon_modelo_codigo bigint,
 	sillon_modelo_descripcion nvarchar(255),
 	sillon_modelo_precio decimal(18,2),
 	CONSTRAINT PK_ModeloSillon PRIMARY KEY (sillon_modelo_codigo)
@@ -247,13 +247,16 @@ BEGIN
      SET NOCOUNT ON;
 
      INSERT INTO THIS_IS_FINE.modelo_sillon (
+	      sillon_modelo_codigo, 
 	      sillon_modelo_descripcion,
 	      sillon_modelo_precio
      )
 	 SELECT DISTINCT 
+	      sillon_modelo_codigo, 
 		  sillon_modelo_descripcion,
 		  sillon_modelo_precio
      FROM gd_esquema.Maestra
+	 WHERE sillon_modelo_codigo IS NOT NULL
 	/*Cómo hacíamos entonces con los NULL?*/
 END;
 
