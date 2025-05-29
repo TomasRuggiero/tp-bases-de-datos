@@ -304,7 +304,7 @@ BEGIN
 
      INSERT INTO THIS_IS_FINE.tipo_material(tipo_material_detalle)
 	 SELECT DISTINCT
-	     tipo_material_detalle 
+	     material_tipo 
      FROM gd_esquema.Maestra
 END; /*Despu�s vemos si esto lo dejamos as�*/
 GO
@@ -395,8 +395,8 @@ END;
 
 select * from THIS_IS_FINE.Cliente
 
-insert into THIS_IS_FINE.Cliente (cliente_codigo, cliente_dni, cliente_nombre, cliente_apellido, cliente_fecha_nacimiento, cliente_dni, cliente_telefono, cliente_direccion)
-select distinct gd_esquema.Maestra.clie, gd_esquema.Maestra.Cliente_Dni 
+/*insert into THIS_IS_FINE.Cliente (cliente_codigo, cliente_dni, cliente_nombre, cliente_apellido, cliente_fecha_nacimiento, cliente_dni, cliente_telefono, cliente_direccion)
+select distinct gd_esquema.Maestra.clie, gd_esquema.Maestra.Cliente_Dni */ /*lo dejo mientras comentado porque tiraba error*/
 
 /* Migracion de Sucursal*/
 
@@ -425,4 +425,5 @@ BEGIN
 	 WHERE sucursal_NroSucursal IS NOT NULL
 	/*Cómo hacíamos entonces con los NULL?*/
 END;
+GO
 
