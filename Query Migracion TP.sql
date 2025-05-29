@@ -98,12 +98,18 @@ create table THIS_IS_FINE.Factura (
 
 create table THIS_IS_FINE.Sucursal (
 	sucursal_NroSucursal bigint, 
-	-- FK a Localidad
+	sucursal_localidad int,
 	sucursal_direccion nvarchar(255),
 	sucursal_telefono nvarchar(255),
 	sucursal_mail nvarchar(255),
 	CONSTRAINT PK_Sucursal PRIMARY KEY (sucursal_NroSucursal)
 )
+
+/*Creación de FK Sucursal_localidad*/
+
+ALTER TABLE THIS_IS_FINE.Sucursal
+ADD CONSTRAINT FK_Sucursal_Localidad
+FOREIGN KEY (sucursal_localidad) REFERENCES THIS_IS_FINE.Localidad(localidad_codigo);
 
 create table THIS_IS_FINE.detalle_factura (
 	--Fk a Factura
@@ -392,7 +398,7 @@ select * from THIS_IS_FINE.Cliente
 insert into THIS_IS_FINE.Cliente (cliente_codigo, cliente_dni, cliente_nombre, cliente_apellido, cliente_fecha_nacimiento, cliente_dni, cliente_telefono, cliente_direccion)
 select distinct gd_esquema.Maestra.clie, gd_esquema.Maestra.Cliente_Dni 
 
-/* Migraci�n de Sucursal*/
+/* Migracion de Sucursal*/
 
 CREATE PROCEDURE migrar_sucursal
 AS
@@ -414,8 +420,9 @@ BEGIN
 		  sucursal_telefono,
 		  sucursal_mail
      FROM gd_esquema.Maestra maestra
-	 LEFT JOIN THIS_IS_FINE.Localidad Loc /*Creo que va con left porque no llam�s por PK, y supongo que hay que traer las sucursales aunque no tengan loc*/
-	 ON Loc.localidad_detalle = maestra.Sucursal.Localidad
+	 LEFT JOIN THIS_IS_FINE.Localidad Loc /*Creo que va con left porque no llamás por PK, y supongo que hay que traer las sucursales aunque no tengan loc*/
+	 ON Loc.localidad_detalle = maestra.Sucursal_Localidad
 	 WHERE sucursal_NroSucursal IS NOT NULL
-	/*C�mo hac�amos entonces con los NULL?*/
+	/*Cómo hacíamos entonces con los NULL?*/
 END;
+
