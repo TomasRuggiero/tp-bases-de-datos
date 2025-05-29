@@ -21,12 +21,12 @@ create table THIS_IS_FINE.Cliente (
 )
 
 create table THIS_IS_FINE.Provincia (
-	provincia_codigo INTEGER PRIMARY KEY,
+	provincia_codigo INTEGER IDENTITY(1,1) PRIMARY KEY,
 	provincia_detalle NVARCHAR(255)
 )
 
 create table THIS_IS_FINE.Localidad (
-	localidad_codigo INTEGER PRIMARY KEY,
+	localidad_codigo INTEGER IDENTITY(1,1) PRIMARY KEY,
 	localidad_detalle NVARCHAR(255),
 	localidad_provincia INTEGER
 	-- Agregar FK a Provincia
@@ -145,13 +145,15 @@ create table THIS_IS_FINE.detalle_compra (
 
 /*Insertar provincia de la tabla maestra a tabla provincia*/
 INSERT INTO THIS_IS_FINE.Provincia (provincia_detalle)
-SELECT distinct provincia FROM (
-	select Sucursal_Provincia as provincia from gd_esquema.Maestra
-	union
-	select Cliente_Provincia from gd_esquema.Maestra
-	union
-	select Proveedor_Provincia from gd_esquema.Maestra
-) as provincias
+SELECT DISTINCT provincia
+FROM (
+    SELECT Sucursal_Provincia AS provincia FROM gd_esquema.Maestra
+    UNION
+    SELECT Cliente_Provincia FROM gd_esquema.Maestra
+    UNION
+    SELECT Proveedor_Provincia FROM gd_esquema.Maestra
+) AS provincias
+WHERE provincia IS NOT NULL;
 
 /*insertando localidades de proveedor*/
 INSERT INTO THIS_IS_FINE.Localidad (localidad_detalle, localidad_provincia)
