@@ -3,11 +3,10 @@
 use GD1C2025;
 GO
 
-drop schema THIS_IS_FINE;
-GO
-
-create schema THIS_IS_FINE;
-GO
+if not exists(SELECT * from sys.schemas where name='THIS_IS_FINE')
+BEGIN
+EXEC('create schema THIS_IS_FINE;')
+END
 
 drop table if exists THIS_IS_FINE.Provincia;
 
@@ -250,7 +249,7 @@ create table THIS_IS_FINE.tipo_material (
 /*Insertar Sill�n Modelo de la tabla maestra a tabla modelo_sillon*/
 GO
 
-CREATE PROCEDURE migrar_modelo_sillon
+CREATE PROCEDURE THIS_IS_FINE.migrar_modelo_sillon
 AS
 BEGIN
 
@@ -273,7 +272,7 @@ GO
 
 /*Insertar Medidas Sill�n de la tabla maestra a la tabla medida_sillon*/
 
-CREATE PROCEDURE migrar_medida_sillon
+CREATE PROCEDURE THIS_IS_FINE.migrar_medida_sillon
 AS
 BEGIN
 
@@ -296,7 +295,7 @@ GO
 
 /*Insertar Tipo Material de la tabla maestra a la tabla tipo_material*/
 
-CREATE PROCEDURE migrar_tipo_material
+CREATE PROCEDURE THIS_IS_FINE.migrar_tipo_material
 AS
 BEGIN
 
@@ -311,7 +310,7 @@ GO
 
 /*Insertar provincia de la tabla maestra a tabla provincia*/
 
-CREATE PROCEDURE migrar_provincia
+CREATE PROCEDURE THIS_IS_FINE.migrar_provincia
 AS
 BEGIN
 INSERT INTO THIS_IS_FINE.Provincia (provincia_detalle)
@@ -329,7 +328,7 @@ GO
 
 /*insertando localidades de proveedor*/
 
-CREATE PROCEDURE migrar_localidades_proveedor
+CREATE PROCEDURE THIS_IS_FINE.migrar_localidades_proveedor
 AS
 BEGIN
 INSERT INTO THIS_IS_FINE.Localidad (localidad_detalle, localidad_provincia)
@@ -350,7 +349,7 @@ END;
 GO
 /*insertando localidades de sucursal*/
 
-CREATE PROCEDURE migrar_localidades_sucursal
+CREATE PROCEDURE THIS_IS_FINE.migrar_localidades_sucursal
 AS
 BEGIN
 INSERT INTO THIS_IS_FINE.Localidad (localidad_detalle, localidad_provincia)
@@ -371,7 +370,7 @@ END;
 GO
 /*insertando localidades de cliente*/
 
-CREATE PROCEDURE migrar_localidades_cliente
+CREATE PROCEDURE THIS_IS_FINE.migrar_localidades_cliente
 AS
 BEGIN
 INSERT INTO THIS_IS_FINE.Localidad (localidad_detalle, localidad_provincia)
@@ -389,18 +388,19 @@ WHERE maestra.Cliente_Provincia IS NOT NULL
       WHERE Loc.localidad_detalle = maestra.Cliente_Localidad and Loc.localidad_provincia = Prov.provincia_codigo
 	)
 END;
-
+GO
 
 /* Migracion de Cliente */
 
 select * from THIS_IS_FINE.Cliente
+GO
 
 /*insert into THIS_IS_FINE.Cliente (cliente_codigo, cliente_dni, cliente_nombre, cliente_apellido, cliente_fecha_nacimiento, cliente_dni, cliente_telefono, cliente_direccion)
 select distinct gd_esquema.Maestra.clie, gd_esquema.Maestra.Cliente_Dni */ /*lo dejo mientras comentado porque tiraba error*/
 
 /* Migracion de Sucursal*/
 
-CREATE PROCEDURE migrar_sucursal
+CREATE PROCEDURE THIS_IS_FINE.migrar_sucursal
 AS
 BEGIN
 
