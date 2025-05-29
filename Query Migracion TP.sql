@@ -2,14 +2,44 @@
 
 use GD1C2025;
 
-create schema THIS_IS_FINE
+create schema THIS_IS_FINE;
 
 drop table if exists THIS_IS_FINE.Provincia;
 
 drop table if exists THIS_IS_FINE.Localidad;
 
+/* DROPEO las tablas para crear correctamente las PKs */
+
+-- Tablas hijas
+DROP TABLE IF EXISTS THIS_IS_FINE.detalle_pedido;
+DROP TABLE IF EXISTS THIS_IS_FINE.detalle_factura;
+DROP TABLE IF EXISTS THIS_IS_FINE.pedido_cancelacion;
+DROP TABLE IF EXISTS THIS_IS_FINE.detalle_compra;
+DROP TABLE IF EXISTS THIS_IS_FINE.sillon_material;
+DROP TABLE IF EXISTS THIS_IS_FINE.Madera;
+DROP TABLE IF EXISTS THIS_IS_FINE.Tela;
+DROP TABLE IF EXISTS THIS_IS_FINE.Relleno;
+
+-- Tablas intermedias o dependientes
+DROP TABLE IF EXISTS THIS_IS_FINE.Compra;
+DROP TABLE IF EXISTS THIS_IS_FINE.Pedido;
+DROP TABLE IF EXISTS THIS_IS_FINE.Factura;
+
+-- Tablas relativamente independientes
+DROP TABLE IF EXISTS THIS_IS_FINE.Sillon;
+DROP TABLE IF EXISTS THIS_IS_FINE.modelo_sillon;
+DROP TABLE IF EXISTS THIS_IS_FINE.medida_sillon;
+DROP TABLE IF EXISTS THIS_IS_FINE.Material;
+DROP TABLE IF EXISTS THIS_IS_FINE.tipo_material;
+DROP TABLE IF EXISTS THIS_IS_FINE.Proveedor;
+DROP TABLE IF EXISTS THIS_IS_FINE.Cliente;
+DROP TABLE IF EXISTS THIS_IS_FINE.Sucursal;
+DROP TABLE IF EXISTS THIS_IS_FINE.Localidad;
+DROP TABLE IF EXISTS THIS_IS_FINE.Provincia;
+
+
 create table THIS_IS_FINE.Cliente (
-	cliente_codigo INT PRIMARY KEY,
+	cliente_codigo INT IDENTITY(1,1),
 	cliente_dni NVARCHAR(100),
 	cliente_nombre NVARCHAR(100),
 	cliente_apellido NVARCHAR(100),
@@ -18,18 +48,21 @@ create table THIS_IS_FINE.Cliente (
 	cliente_telefono NVARCHAR(100),
 	cliente_direccion NVARCHAR(100)
 	-- Agregar FK a Localidad
+	CONSTRAINT PK_Cliente PRIMARY KEY (cliente_codigo)
 )
 
 create table THIS_IS_FINE.Provincia (
-	provincia_codigo INTEGER IDENTITY(1,1) PRIMARY KEY,
-	provincia_detalle NVARCHAR(255)
+	provincia_codigo INTEGER IDENTITY(1,1),
+	provincia_detalle NVARCHAR(255),
+	CONSTRAINT PK_Provincia PRIMARY KEY (provincia_codigo)
 )
 
 create table THIS_IS_FINE.Localidad (
-	localidad_codigo INTEGER IDENTITY(1,1) PRIMARY KEY,
+	localidad_codigo INTEGER IDENTITY(1,1),
 	localidad_detalle NVARCHAR(255),
 	localidad_provincia INTEGER
 	-- Agregar FK a Provincia
+	CONSTRAINT PK_Localidad PRIMARY KEY (localidad_codigo)
 )
 
 /*
@@ -41,29 +74,32 @@ REFERENCES THIS_IS_FINE.Provincia(provincia_codigo);
 
 
 create table THIS_IS_FINE.Proveedor (
-	proveedor_codigo INTEGER PRIMARY KEY,
+	proveedor_codigo INTEGER IDENTITY(1,1),
 	proveedor_cuit NVARCHAR(100),
 	proveedor_razon_social NVARCHAR(100),
 	proveedor_direccion NVARCHAR(100),
 	proveedor_telefono	NVARCHAR(100),
 	proveedor_mail NVARCHAR(100)
 	-- Agregar FK a Localidad
+	CONSTRAINT PK_Proveedor PRIMARY KEY (proveedor_codigo)
 )
 
 create table THIS_IS_FINE.Factura (
-	factura_numero bigint PRIMARY KEY,
+	factura_numero bigint,
 	factura_fecha datetime2(6),
 	-- FK a Cliente
 	factura_total decimal(38,2),
 	--Fk a Sucursal
+	CONSTRAINT PK_Factura PRIMARY KEY (factura_numero)
 )
 
 create table THIS_IS_FINE.Sucursal (
-	sucursal_numero bigint PRIMARY KEY, -- discutir si esta bien 
+	sucursal_numero bigint, -- discutir si esta bien 
 	-- FK a Localidad
 	sucursal_direccion nvarchar(255),
 	sucursal_telefono nvarchar(255),
-	sucursal_mail nvarchar(255)
+	sucursal_mail nvarchar(255),
+	CONSTRAINT PK_Sucursal PRIMARY KEY (sucursal_numero)
 )
 
 create table THIS_IS_FINE.detalle_factura (
@@ -72,15 +108,17 @@ create table THIS_IS_FINE.detalle_factura (
 	fact_det_precio decimal(18,2),
 	fact_det_cantidad decimal(18,0),
 	fact_det_subtotal decimal(18,2)
+	--CONSTRAINT PK_detalleFactura PRIMARY KEY (fact_det_factura, fact_det_pedido)
 )
 
 create table THIS_IS_FINE.Pedido (
-	pedido_numero decimal(18,0) PRIMARY KEY,
+	pedido_numero decimal(18,0),
 	pedido_fecha datetime2(6),
 	--FK a Sucursal 
 	pedido_estado nvarchar(255),
 	--FK a cliente
-	pedido_total decimal(18,2)
+	pedido_total decimal(18,2),
+	CONSTRAINT PK_Pedido PRIMARY KEY (pedido_numero)
 )
 
 create table THIS_IS_FINE.detalle_pedido (
@@ -93,38 +131,43 @@ create table THIS_IS_FINE.detalle_pedido (
 )
 
 create table THIS_IS_FINE.pedido_cancelacion (
-	cancel_pedido_codigo int PRIMARY KEY,
+	cancel_pedido_codigo int,
 	cancel_pedido_fecha datetime2(6),
 	--FK a pedido
+	CONSTRAINT PK_Pedido_cancelacion PRIMARY KEY (cancel_pedido_codigo)
 )
 
 create table THIS_IS_FINE.Sillon (
-	sillon_codigo bigint PRIMARY KEY,
+	sillon_codigo bigint,
 	-- FK a sillon modelo
 	-- FK a sillon medida
+	CONSTRAINT PK_Sillon PRIMARY KEY (sillon_codigo)
 )
 
 create table THIS_IS_FINE.modelo_sillon (
-	modelo_codigo bigint PRIMARY KEY,
+	modelo_codigo bigint,
 	modelo_descripcion nvarchar(255),
-	modelo_precio decimal(18,2)
+	modelo_precio decimal(18,2),
+	CONSTRAINT PK_ModeloSillon PRIMARY KEY (modelo_codigo)
 )
 
 create table THIS_IS_FINE.medida_sillon (
-	medida_codigo int PRIMARY KEY,
+	medida_codigo int,
 	medida_alto decimal(18,2),
 	medida_ancho decimal(18,2),
 	medida_profundidad decimal(18,2),
-	medida_precio decimal(18,2)
+	medida_precio decimal(18,2),
+	CONSTRAINT PK_MedidaSillon PRIMARY KEY (medida_codigo)
 )
 
 create table THIS_IS_FINE.Compra (
-	compra_codigo decimal(18,0) PRIMARY KEY,
+	compra_codigo decimal(18,0),
 	-- FK a Sucursal
 	-- FK a Envio
 	-- FK a Proveedor
 	compra_fecha datetime2(6),
-	compra_total decimal(18,2)
+	compra_total decimal(18,2),
+	CONSTRAINT PK_CompraCodigo PRIMARY KEY (compra_codigo)
 )
 
 create table THIS_IS_FINE.detalle_compra (
@@ -132,43 +175,59 @@ create table THIS_IS_FINE.detalle_compra (
 	-- FK a Material
 	compra_precio_unitario decimal(18,2),
 	compra_cantidad decimal(18,0),
-	compra_subtotal decimal(18,0)
+	compra_subtotal decimal(18,0),
+	--CONSTRAINT PK_DetalleCompra PRIMARY KEY (compra_codigo, material_codigo)
 )
 
 create table THIS_IS_FINE.sillon_material (
 	--FK a sillon
 	-- Fk a material
-	material_cantidad decimal(18,2)
+	material_cantidad decimal(18,2),
+	--CONSTRAINT PK_SillonMaterial PRIMARY KEY (sillon_codigo, material_codigo)
 )
 
 create table THIS_IS_FINE.Material (
-    id_material int PRIMARY KEY,
+    id_material int IDENTITY(1,1),
 	--FK a material_tipo
 	material_nombre nvarchar(255),
 	material_descripcion nvarchar(255),
-	material_precio decimal(38,2)
+	material_precio decimal(38,2),
+	CONSTRAINT PK_Material PRIMARY KEY (id_material)
 )
 
 create table THIS_IS_FINE.Madera (
     --PK/FK id_material
 	madera_color nvarchar(255),
 	madera_dureza nvarchar(255)
+	/* CONSTRAINT PK_Madera PRIMARY KEY (id_material),
+
+	CONSTRAINT FK_Madera_Material FOREIGN KEY (id_material)
+			REFERENCES THIS_IS_FINE.Material (id_material) */
 )
 
 create table THIS_IS_FINE.Tela (
     --PK/FK id_material
 	tela_color nvarchar(255),
 	tela_textura nvarchar(255)
+	/* CONSTRAINT PK_Tela PRIMARY KEY (id_material),
+
+	CONSTRAINT FK_Tela_Material FOREIGN KEY (id_material)
+			REFERENCES THIS_IS_FINE.Material (id_material) */
 )
 
 create table THIS_IS_FINE.Relleno (
     --PK/FK id_material
 	relleno_densidad decimal(38,2)
+	/* CONSTRAINT PK_Relleno PRIMARY KEY (id_material),
+
+	CONSTRAINT FK_Relleno_Material FOREIGN KEY (id_material)
+			REFERENCES THIS_IS_FINE.Material (id_material) */
 )
 
 create table THIS_IS_FINE.tipo_material (
      tipo_material_id int PRIMARY KEY,
 	 tipo_material_detalle nvarchar(255)
+	 -- CONSTRAINT PK_TipoMaterial PRIMARY KEY (tipo_material_id)
 ) /*Ver si dejamos esto así*/
 
 
@@ -241,6 +300,13 @@ WHERE maestra.Cliente_Provincia IS NOT NULL
 	)
 
 
+
+/* Migracion de Cliente */
+
+select * from THIS_IS_FINE.Cliente
+
+insert into THIS_IS_FINE.Cliente (cliente_codigo, cliente_dni, cliente_nombre, cliente_apellido, cliente_fecha_nacimiento, cliente_dni, cliente_telefono, cliente_direccion)
+select distinct gd_esquema.Maestra.clie, gd_esquema.Maestra.Cliente_Dni 
 
 
 
