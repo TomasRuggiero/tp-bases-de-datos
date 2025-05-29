@@ -4,6 +4,10 @@ use GD1C2025;
 
 create schema THIS_IS_FINE
 
+drop table if exists THIS_IS_FINE.Provincia;
+
+drop table if exists THIS_IS_FINE.Localidad;
+
 create table THIS_IS_FINE.Cliente (
 	cliente_codigo INT PRIMARY KEY,
 	cliente_dni NVARCHAR(100),
@@ -16,16 +20,25 @@ create table THIS_IS_FINE.Cliente (
 	-- Agregar FK a Localidad
 )
 
-create table THIS_IS_FINE.Localidad (
-	localidad_codigo INTEGER PRIMARY KEY,
-	localidad_detalle NVARCHAR(255)
-	-- Agregar FK a Provincia
-)
-
 create table THIS_IS_FINE.Provincia (
 	provincia_codigo INTEGER PRIMARY KEY,
 	provincia_detalle NVARCHAR(255)
 )
+
+create table THIS_IS_FINE.Localidad (
+	localidad_codigo INTEGER PRIMARY KEY,
+	localidad_detalle NVARCHAR(255),
+	localidad_provincia INTEGER
+	-- Agregar FK a Provincia
+)
+
+/*
+ALTER TABLE THIS_IS_FINE.Localidad
+ADD CONSTRAINT FK_localidad_provincia FOREIGN KEY (localidad_provincia)
+REFERENCES THIS_IS_FINE.Provincia(provincia_codigo);
+*/
+
+
 
 create table THIS_IS_FINE.Proveedor (
 	proveedor_codigo INTEGER PRIMARY KEY,
@@ -128,6 +141,66 @@ create table THIS_IS_FINE.detalle_compra (
 	sino no podemos reflejar de que materiales se hizo el sillon 
 	- tipos de datos para las PKs
 */
+
+
+/*Insertar provincia de la tabla maestra a tabla provincia*/
+INSERT INTO THIS_IS_FINE.Provincia (provincia_detalle)
+SELECT distinct provincia FROM (
+	select Sucursal_Provincia as provincia from gd_esquema.Maestra
+	union
+	select Cliente_Provincia from gd_esquema.Maestra
+	union
+	select Proveedor_Provincia from gd_esquema.Maestra
+) as provincias
+
+/*insertando localidades de proveedor*/
+INSERT INTO THIS_IS_FINE.Localidad (localidad_detalle, localidad_provincia)
+SELECT DISTINCT
+    maestra.Proveedor_Localidad,
+    Prov.provincia_codigo
+FROM gd_esquema.Maestra maestra
+JOIN THIS_IS_FINE.Provincia Prov
+  ON Prov.provincia_detalle = maestra.Proveedor_Provincia
+WHERE maestra.Proveedor_Provincia IS NOT NULL
+  AND maestra.Proveedor_Localidad IS NOT NULL
+  AND NOT EXISTS (
+      SELECT 1
+      FROM THIS_IS_FINE.Localidad Loc
+      WHERE Loc.localidad_detalle = maestra.Proveedor_Localidad and Loc.localidad_provincia = Prov.provincia_codigo
+  	)
+
+/*insertando localidades de sucursal*/
+INSERT INTO THIS_IS_FINE.Localidad (localidad_detalle, localidad_provincia)
+SELECT DISTINCT
+    maestra.Sucursal_Localidad,
+    Prov.provincia_codigo
+FROM gd_esquema.Maestra maestra
+JOIN THIS_IS_FINE.Provincia Prov
+  ON Prov.provincia_detalle = maestra.Sucursal_Provincia
+WHERE maestra.Sucursal_Provincia IS NOT NULL
+  AND maestra.Sucursal_Localidad IS NOT NULL
+  AND NOT EXISTS (
+      SELECT 1
+      FROM THIS_IS_FINE.Localidad Loc
+      WHERE Loc.localidad_detalle = maestra.Sucursal_Localidad and Loc.localidad_provincia = Prov.provincia_codigo
+  	)
+
+/*insertando localidades de cliente*/
+INSERT INTO THIS_IS_FINE.Localidad (localidad_detalle, localidad_provincia)
+SELECT DISTINCT
+    maestra.Cliente_Localidad,
+    Prov.provincia_codigo
+FROM gd_esquema.Maestra maestra
+JOIN THIS_IS_FINE.Provincia Prov
+  ON Prov.provincia_detalle = maestra.Cliente_Provincia
+WHERE maestra.Cliente_Provincia IS NOT NULL
+  AND maestra.Cliente_Localidad IS NOT NULL
+  AND NOT EXISTS (
+      SELECT 1
+      FROM THIS_IS_FINE.Localidad Loc
+      WHERE Loc.localidad_detalle = maestra.Cliente_Localidad and Loc.localidad_provincia = Prov.provincia_codigo
+	)
+
 
 
 
