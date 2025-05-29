@@ -1,8 +1,13 @@
 /* SCRIPT TP GDD MIGRACION DE DATOS */ 
 
 use GD1C2025;
+GO
+
+drop schema THIS_IS_FINE;
+GO
 
 create schema THIS_IS_FINE;
+GO
 
 drop table if exists THIS_IS_FINE.Provincia;
 
@@ -70,8 +75,6 @@ ALTER TABLE THIS_IS_FINE.Localidad
 ADD CONSTRAINT FK_localidad_provincia FOREIGN KEY (localidad_provincia)
 REFERENCES THIS_IS_FINE.Provincia(provincia_codigo);
 */
-
-
 
 create table THIS_IS_FINE.Proveedor (
 	proveedor_codigo INTEGER IDENTITY(1,1),
@@ -228,7 +231,7 @@ create table THIS_IS_FINE.tipo_material (
      tipo_material_id int IDENTITY(1,1) PRIMARY KEY,
 	 tipo_material_detalle nvarchar(255)
 	 -- CONSTRAINT PK_TipoMaterial PRIMARY KEY (tipo_material_id)
-) /*Ver si dejamos esto así*/
+) /*Ver si dejamos esto asï¿½*/
 
 
 /* A DISCUTIR: 
@@ -238,7 +241,8 @@ create table THIS_IS_FINE.tipo_material (
 	- tipos de datos para las PKs
 */
 
-/*Insertar Sillón Modelo de la tabla maestra a tabla modelo_sillon*/
+/*Insertar Sillï¿½n Modelo de la tabla maestra a tabla modelo_sillon*/
+GO
 
 CREATE PROCEDURE migrar_modelo_sillon
 AS
@@ -257,10 +261,11 @@ BEGIN
 		  sillon_modelo_precio
      FROM gd_esquema.Maestra
 	 WHERE sillon_modelo_codigo IS NOT NULL
-	/*Cómo hacíamos entonces con los NULL?*/
+	/*Cï¿½mo hacï¿½amos entonces con los NULL?*/
 END;
+GO
 
-/*Insertar Medidas Sillón de la tabla maestra a la tabla medida_sillon*/
+/*Insertar Medidas Sillï¿½n de la tabla maestra a la tabla medida_sillon*/
 
 CREATE PROCEDURE migrar_medida_sillon
 AS
@@ -281,6 +286,7 @@ BEGIN
 	     sillon_medida_precio 
      FROM gd_esquema.Maestra
 END;
+GO
 
 /*Insertar Tipo Material de la tabla maestra a la tabla tipo_material*/
 
@@ -294,7 +300,8 @@ BEGIN
 	 SELECT DISTINCT
 	     tipo_material_detalle 
      FROM gd_esquema.Maestra
-END; /*Después vemos si esto lo dejamos así*/
+END; /*Despuï¿½s vemos si esto lo dejamos asï¿½*/
+GO
 
 /*Insertar provincia de la tabla maestra a tabla provincia*/
 
@@ -312,6 +319,7 @@ FROM (
 ) AS provincias
 WHERE provincia IS NOT NULL;
 END;
+GO
 
 /*insertando localidades de proveedor*/
 
@@ -333,7 +341,7 @@ WHERE maestra.Proveedor_Provincia IS NOT NULL
       WHERE Loc.localidad_detalle = maestra.Proveedor_Localidad and Loc.localidad_provincia = Prov.provincia_codigo
   	)
 END;
-
+GO
 /*insertando localidades de sucursal*/
 
 CREATE PROCEDURE migrar_localidades_sucursal
@@ -354,7 +362,7 @@ WHERE maestra.Sucursal_Provincia IS NOT NULL
       WHERE Loc.localidad_detalle = maestra.Sucursal_Localidad and Loc.localidad_provincia = Prov.provincia_codigo
   	)
 END;
-
+GO
 /*insertando localidades de cliente*/
 
 CREATE PROCEDURE migrar_localidades_cliente
@@ -384,7 +392,7 @@ select * from THIS_IS_FINE.Cliente
 insert into THIS_IS_FINE.Cliente (cliente_codigo, cliente_dni, cliente_nombre, cliente_apellido, cliente_fecha_nacimiento, cliente_dni, cliente_telefono, cliente_direccion)
 select distinct gd_esquema.Maestra.clie, gd_esquema.Maestra.Cliente_Dni 
 
-/* Migración de Sucursal*/
+/* Migraciï¿½n de Sucursal*/
 
 CREATE PROCEDURE migrar_sucursal
 AS
@@ -406,17 +414,8 @@ BEGIN
 		  sucursal_telefono,
 		  sucursal_mail
      FROM gd_esquema.Maestra maestra
-	 LEFT JOIN THIS_IS_FINE.Localidad Loc /*Creo que va con left porque no llamás por PK, y supongo que hay que traer las sucursales aunque no tengan loc*/
+	 LEFT JOIN THIS_IS_FINE.Localidad Loc /*Creo que va con left porque no llamï¿½s por PK, y supongo que hay que traer las sucursales aunque no tengan loc*/
 	 ON Loc.localidad_detalle = maestra.Sucursal.Localidad
 	 WHERE sucursal_NroSucursal IS NOT NULL
-	/*Cómo hacíamos entonces con los NULL?*/
+	/*Cï¿½mo hacï¿½amos entonces con los NULL?*/
 END;
-
-
-
-
-
-
-
-
-
