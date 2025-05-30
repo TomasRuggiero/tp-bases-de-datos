@@ -10,8 +10,6 @@ END
 
 drop table if exists THIS_IS_FINE.Provincia;
 
-drop table if exists THIS_IS_FINE.Localidad;
-
 /* DROPEO las tablas para crear correctamente las PKs */
 
 -- Tablas hijas
@@ -129,27 +127,45 @@ create table THIS_IS_FINE.Pedido (
 	CONSTRAINT PK_Pedido PRIMARY KEY (pedido_numero)
 )
 
-create table THIS_IS_FINE.detalle_pedido (
-	--FK a Pedido 
-	-- FK a sillon
-	-- PK es (pedido, sillon)
-	pedido_det_cantidad bigint,
-	pedido_det_precio decimal(18,2),
-	--pedido_det_subtotal discutir que hacer con esto
+create table THIS_IS_FINE.Sillon (
+	sillon_codigo bigint,
+	-- FK a sillon modelo
+	-- FK a sillon medida
+	CONSTRAINT PK_Sillon PRIMARY KEY (sillon_codigo)
 )
+
+CREATE TABLE THIS_IS_FINE.detalle_pedido (
+    -- Columnas FK
+    pedido_numero   DECIMAL(18,0)   NOT NULL,
+    sillon_codigo   BIGINT          NOT NULL,
+
+    -- Datos propios
+    pedido_det_cantidad   BIGINT        NULL,
+    pedido_det_precio     DECIMAL(18,2) NULL,
+	pedido_det_subtotal	  BIGINT		NULL,
+
+    -- PK compuesta
+    CONSTRAINT PK_detalle_pedido
+      PRIMARY KEY (pedido_numero, sillon_codigo),
+
+    -- FK a Pedido
+    CONSTRAINT FK_detalle_pedido_Pedido
+      FOREIGN KEY (pedido_numero)
+      REFERENCES THIS_IS_FINE.Pedido(pedido_numero),
+
+    -- FK a Sillon
+    CONSTRAINT FK_detalle_pedido_Sillon
+      FOREIGN KEY (sillon_codigo)
+      REFERENCES THIS_IS_FINE.Sillon(sillon_codigo)
+);
+GO
+
 
 create table THIS_IS_FINE.pedido_cancelacion (
 	cancel_pedido_codigo int,
 	cancel_pedido_fecha datetime2(6),
 	--FK a pedido
 	CONSTRAINT PK_Pedido_cancelacion PRIMARY KEY (cancel_pedido_codigo)
-)
-
-create table THIS_IS_FINE.Sillon (
-	sillon_codigo bigint,
-	-- FK a sillon modelo
-	-- FK a sillon medida
-	CONSTRAINT PK_Sillon PRIMARY KEY (sillon_codigo)
 )
 
 create table THIS_IS_FINE.modelo_sillon (
@@ -427,3 +443,47 @@ BEGIN
 END;
 GO
 
+CREATE PROCEDURE THIS_IS_FINE.migrar_pedido
+AS
+BEGIN
+
+	SET NOCOUNT ON;
+
+	INSERT INTO THIS_IS_FINE.Pedido (
+		pedido_numero,
+		pedido_fecha,
+		pedido_estado,
+		pedido_total
+	)
+	SELECT DISTINCT
+		pedido_numero,
+		pedido_fecha,
+		pedido_estado,
+		pedido_total
+	FROM gd_esquema.Maestra maestra
+	WHERE pedido_numero IS NOT NULL
+END
+GO
+
+CREATE PROCEDURE THIS_IS_FINE.migrar_detalle_pedido
+AS
+BEGIN
+
+	SET NOCOUNT ON;
+	
+	INSERT INTO THIS_IS_FINE.detalle_pedido (
+		pedido_numero,
+		sillon_codigo,
+		pedido_det_cantidad,
+		pedido_det_precio,
+		pedido_det_subtotal
+	)
+	SELECT DISTINCT
+		pedido_numero,
+		sillon_codigo,
+		detalle_pedido_cantidad,
+		detalle_pedido_precio,
+		detalle_pedido_subtotal
+		FROM gd_esquema.Maestra maestra
+		WHERE pedido_numero IS NOT NULL AND sillon_codigo IS NOT NULL
+END
