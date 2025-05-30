@@ -3,10 +3,10 @@
 use GD1C2025;
 GO
 
-if not exists(SELECT * from sys.schemas where name='THIS_IS_FINE')
+/*if not exists(SELECT * from sys.schemas where name='THIS_IS_FINE')
 BEGIN
-EXEC('create schema THIS_IS_FINE;')
-END
+EXEC*/(/*'*/ create schema THIS_IS_FINE;/*'*/)
+--END
 
 drop table if exists THIS_IS_FINE.Provincia;
 
@@ -99,7 +99,7 @@ create table THIS_IS_FINE.Sucursal (
 	sucursal_direccion nvarchar(255),
 	sucursal_telefono nvarchar(255),
 	sucursal_mail nvarchar(255),
-	CONSTRAINT PK_Sucursal PRIMARY KEY (sucursal_NroSucursal)
+	CONSTRAINT PK_Sucursal PRIMARY KEY (sucursal_Nrosucursal)
 )
 
 /*Creación de FK Sucursal_localidad*/
@@ -212,41 +212,52 @@ create table THIS_IS_FINE.sillon_material (
 
 create table THIS_IS_FINE.Material (
     id_material int IDENTITY(1,1),
-	--FK a material_tipo
+	material_tipo int,
 	material_nombre nvarchar(255),
 	material_descripcion nvarchar(255),
 	material_precio decimal(38,2),
 	CONSTRAINT PK_Material PRIMARY KEY (id_material)
 )
 
+/*Creación FK Material_tipo*/
+ALTER TABLE THIS_IS_FINE.Material
+ADD CONSTRAINT FK_Material_Tipo
+FOREIGN KEY (material_tipo) REFERENCES THIS_IS_FINE.tipo_material(tipo_material_id);
+
 create table THIS_IS_FINE.Madera (
-    --PK/FK id_material
+    id_material int,
 	madera_color nvarchar(255),
 	madera_dureza nvarchar(255)
-	/* CONSTRAINT PK_Madera PRIMARY KEY (id_material),
-
-	CONSTRAINT FK_Madera_Material FOREIGN KEY (id_material)
-			REFERENCES THIS_IS_FINE.Material (id_material) */
+	CONSTRAINT PK_Madera PRIMARY KEY (id_material),
 )
+
+/*Creación FK Madera a Material*/
+ALTER TABLE THIS_IS_FINE.Madera
+ADD CONSTRAINT FK_Madera_Material
+FOREIGN KEY (id_material) REFERENCES THIS_IS_FINE.Material (id_material) 
+
 
 create table THIS_IS_FINE.Tela (
-    --PK/FK id_material
+    id_material int,
 	tela_color nvarchar(255),
 	tela_textura nvarchar(255)
-	/* CONSTRAINT PK_Tela PRIMARY KEY (id_material),
-
-	CONSTRAINT FK_Tela_Material FOREIGN KEY (id_material)
-			REFERENCES THIS_IS_FINE.Material (id_material) */
+	CONSTRAINT PK_Tela PRIMARY KEY (id_material),
 )
+
+/*Creación FK Tela a Material*/
+ALTER TABLE THIS_IS_FINE.Tela
+ADD CONSTRAINT FK_Tela_Material 
+FOREIGN KEY (id_material) REFERENCES THIS_IS_FINE.Material(id_material) 
 
 create table THIS_IS_FINE.Relleno (
-    --PK/FK id_material
+    id_material int,
 	relleno_densidad decimal(38,2)
-	/* CONSTRAINT PK_Relleno PRIMARY KEY (id_material),
-
-	CONSTRAINT FK_Relleno_Material FOREIGN KEY (id_material)
-			REFERENCES THIS_IS_FINE.Material (id_material) */
+	CONSTRAINT PK_Relleno PRIMARY KEY (id_material),
 )
+/*Creación FK Relleno a Material*/
+ALTER TABLE THIS_IS_FINE.Relleno
+ADD CONSTRAINT FK_Relleno_Material 
+FOREIGN KEY (id_material) REFERENCES THIS_IS_FINE.Material (id_material)
 
 create table THIS_IS_FINE.tipo_material (
      tipo_material_id int IDENTITY(1,1) PRIMARY KEY,
@@ -408,11 +419,17 @@ GO
 
 /* Migracion de Cliente */
 
-select * from THIS_IS_FINE.Cliente
-GO
+create procedure migrar_cliente
+as 
+BEGIN 
+	insert into THIS_IS_FINE.Cliente (cliente_dni, cliente_nombre, cliente_apellido, cliente_fecha_nacimiento, cliente_mail, cliente_telefono, cliente_direccion)
+	select distinct Cliente_Dni, Cliente_Nombre, Cliente_Apellido, Cliente_FechaNacimiento, Cliente_Mail, Cliente_Telefono, Cliente_Direccion
+	from gd_esquema.Maestra
+	where Cliente_Dni is not null and Cliente_Nombre is not null and Cliente_Apellido is not null and Cliente_FechaNacimiento is not null and Cliente_Telefono is not null and Cliente_Direccion is not null 
+END 
 
-/*insert into THIS_IS_FINE.Cliente (cliente_codigo, cliente_dni, cliente_nombre, cliente_apellido, cliente_fecha_nacimiento, cliente_dni, cliente_telefono, cliente_direccion)
-select distinct gd_esquema.Maestra.clie, gd_esquema.Maestra.Cliente_Dni */ /*lo dejo mientras comentado porque tiraba error*/
+exec migrar_cliente;	
+
 
 /* Migracion de Sucursal*/
 
@@ -487,3 +504,109 @@ BEGIN
 		FROM gd_esquema.Maestra maestra
 		WHERE pedido_numero IS NOT NULL AND sillon_codigo IS NOT NULL
 END
+/*Migración de Material*/
+
+CREATE PROCEDURE THIS_IS_FINE.migrar_material
+AS
+BEGIN
+
+     SET NOCOUNT ON;
+
+     INSERT INTO THIS_IS_FINE.Material (
+	     material_tipo,
+	     material_nombre,
+	     material_descripcion,
+	     material_precio 
+     )
+	 SELECT DISTINCT 
+	     Tipo.tipo_material_id,
+		 material_nombre,
+		 material_descripcion,
+		 material_precio
+     FROM gd_esquema.Maestra maestra
+	 JOIN THIS_IS_FINE.tipo_material Tipo 
+	 ON maestra.Material_Tipo = Tipo.tipo_material_detalle
+	 WHERE material_descripcion IS NOT NULL
+	 and material_precio IS NOT NULL /*los otros ya quedan filtrados por el JOIN?, 
+	 tampoco sé si podemos traer los materiales si no tienen descripción o precio */
+END;
+GO
+
+/*Migración de Madera*/
+
+CREATE PROCEDURE THIS_IS_FINE.migrar_madera
+AS
+BEGIN
+
+     SET NOCOUNT ON;
+
+     INSERT INTO THIS_IS_FINE.Madera (
+	     id_material,
+	     madera_color,
+	     madera_dureza
+     )
+	 SELECT DISTINCT 
+	     Mat.id_material,
+		 madera_color,
+		 madera_dureza
+     FROM gd_esquema.Maestra maestra
+	 JOIN THIS_IS_FINE.tipo_material Tipo
+	 ON maestra.Material_Tipo = Tipo.tipo_material_detalle
+	 JOIN THIS_IS_FINE.Material Mat
+	 ON Mat.material_tipo = Tipo.tipo_material_id
+	 WHERE Tipo.tipo_material_detalle = 'Madera'
+	 AND Madera_Color IS NOT NULL AND madera_dureza IS NOT NULL /*ver si se pueden aceptar nulls*/
+END;
+GO
+
+/*Migración de Tela*/
+
+CREATE PROCEDURE THIS_IS_FINE.migrar_tela
+AS
+BEGIN
+
+     SET NOCOUNT ON;
+
+     INSERT INTO THIS_IS_FINE.Tela (
+	     id_material,
+	     tela_color,
+		 tela_textura
+     )
+	 SELECT DISTINCT 
+	     Mat.id_material,
+		 tela_color,
+		 tela_textura
+     FROM gd_esquema.Maestra maestra
+	 JOIN THIS_IS_FINE.tipo_material Tipo
+	 ON maestra.Material_Tipo = Tipo.tipo_material_detalle
+	 JOIN THIS_IS_FINE.Material Mat
+	 ON Mat.material_tipo = Tipo.tipo_material_id
+	 WHERE Tipo.tipo_material_detalle = 'Tela'
+	 AND Tela_Color IS NOT NULL AND tela_textura IS NOT NULL /*ver si se pueden aceptar nulls*/
+END;
+GO
+
+/*Migración de Relleno*/
+
+CREATE PROCEDURE THIS_IS_FINE.migrar_relleno
+AS
+BEGIN
+
+     SET NOCOUNT ON;
+
+     INSERT INTO THIS_IS_FINE.Relleno (
+	     id_material,
+	     relleno_densidad
+     )
+	 SELECT DISTINCT 
+	     Mat.id_material,
+		 relleno_densidad
+     FROM gd_esquema.Maestra maestra
+	 JOIN THIS_IS_FINE.tipo_material Tipo
+	 ON maestra.Material_Tipo = Tipo.tipo_material_detalle
+	 JOIN THIS_IS_FINE.Material Mat
+	 ON Mat.material_tipo = Tipo.tipo_material_id
+	 WHERE Tipo.tipo_material_detalle = 'Relleno'
+	 AND Relleno_Densidad IS NOT NULL /*ver si se pueden aceptar nulls*/
+END;
+GO
