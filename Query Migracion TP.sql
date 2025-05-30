@@ -1,8 +1,12 @@
 /* SCRIPT TP GDD MIGRACION DE DATOS */ 
 
 use GD1C2025;
+GO
 
-create schema THIS_IS_FINE;
+if not exists(SELECT * from sys.schemas where name='THIS_IS_FINE')
+BEGIN
+EXEC('create schema THIS_IS_FINE;')
+END
 
 drop table if exists THIS_IS_FINE.Provincia;
 
@@ -71,8 +75,6 @@ ADD CONSTRAINT FK_localidad_provincia FOREIGN KEY (localidad_provincia)
 REFERENCES THIS_IS_FINE.Provincia(provincia_codigo);
 */
 
-
-
 create table THIS_IS_FINE.Proveedor (
 	proveedor_codigo INTEGER IDENTITY(1,1),
 	proveedor_cuit NVARCHAR(100),
@@ -95,12 +97,22 @@ create table THIS_IS_FINE.Factura (
 
 create table THIS_IS_FINE.Sucursal (
 	sucursal_NroSucursal bigint, 
-	-- FK a Localidad
+	sucursal_localidad int,
 	sucursal_direccion nvarchar(255),
 	sucursal_telefono nvarchar(255),
 	sucursal_mail nvarchar(255),
+<<<<<<< HEAD
 	CONSTRAINT PK_Sucursal PRIMARY KEY (sucursal_Nrosucursal)
+=======
+	CONSTRAINT PK_Sucursal PRIMARY KEY (sucursal_NroSucursal)
+>>>>>>> main
 )
+
+/*CreaciÃ³n de FK Sucursal_localidad*/
+
+ALTER TABLE THIS_IS_FINE.Sucursal
+ADD CONSTRAINT FK_Sucursal_Localidad
+FOREIGN KEY (sucursal_localidad) REFERENCES THIS_IS_FINE.Localidad(localidad_codigo);
 
 create table THIS_IS_FINE.detalle_factura (
 	--Fk a Factura
@@ -228,7 +240,7 @@ create table THIS_IS_FINE.tipo_material (
      tipo_material_id int IDENTITY(1,1) PRIMARY KEY,
 	 tipo_material_detalle nvarchar(255)
 	 -- CONSTRAINT PK_TipoMaterial PRIMARY KEY (tipo_material_id)
-) /*Ver si dejamos esto así*/
+) /*Ver si dejamos esto asï¿½*/
 
 
 /* A DISCUTIR: 
@@ -238,9 +250,10 @@ create table THIS_IS_FINE.tipo_material (
 	- tipos de datos para las PKs
 */
 
-/*Insertar Sillón Modelo de la tabla maestra a tabla modelo_sillon*/
+/*Insertar Sillï¿½n Modelo de la tabla maestra a tabla modelo_sillon*/
+GO
 
-CREATE PROCEDURE migrar_modelo_sillon
+CREATE PROCEDURE THIS_IS_FINE.migrar_modelo_sillon
 AS
 BEGIN
 
@@ -257,12 +270,13 @@ BEGIN
 		  sillon_modelo_precio
      FROM gd_esquema.Maestra
 	 WHERE sillon_modelo_codigo IS NOT NULL
-	/*Cómo hacíamos entonces con los NULL?*/
+	/*Cï¿½mo hacï¿½amos entonces con los NULL?*/
 END;
+GO
 
-/*Insertar Medidas Sillón de la tabla maestra a la tabla medida_sillon*/
+/*Insertar Medidas Sillï¿½n de la tabla maestra a la tabla medida_sillon*/
 
-CREATE PROCEDURE migrar_medida_sillon
+CREATE PROCEDURE THIS_IS_FINE.migrar_medida_sillon
 AS
 BEGIN
 
@@ -281,10 +295,11 @@ BEGIN
 	     sillon_medida_precio 
      FROM gd_esquema.Maestra
 END;
+GO
 
 /*Insertar Tipo Material de la tabla maestra a la tabla tipo_material*/
 
-CREATE PROCEDURE migrar_tipo_material
+CREATE PROCEDURE THIS_IS_FINE.migrar_tipo_material
 AS
 BEGIN
 
@@ -292,13 +307,14 @@ BEGIN
 
      INSERT INTO THIS_IS_FINE.tipo_material(tipo_material_detalle)
 	 SELECT DISTINCT
-	     tipo_material_detalle 
+	     material_tipo 
      FROM gd_esquema.Maestra
-END; /*Después vemos si esto lo dejamos así*/
+END; /*Despuï¿½s vemos si esto lo dejamos asï¿½*/
+GO
 
 /*Insertar provincia de la tabla maestra a tabla provincia*/
 
-CREATE PROCEDURE migrar_provincia
+CREATE PROCEDURE THIS_IS_FINE.migrar_provincia
 AS
 BEGIN
 INSERT INTO THIS_IS_FINE.Provincia (provincia_detalle)
@@ -312,10 +328,11 @@ FROM (
 ) AS provincias
 WHERE provincia IS NOT NULL;
 END;
+GO
 
 /*insertando localidades de proveedor*/
 
-CREATE PROCEDURE migrar_localidades_proveedor
+CREATE PROCEDURE THIS_IS_FINE.migrar_localidades_proveedor
 AS
 BEGIN
 INSERT INTO THIS_IS_FINE.Localidad (localidad_detalle, localidad_provincia)
@@ -323,7 +340,7 @@ SELECT DISTINCT
     maestra.Proveedor_Localidad,
     Prov.provincia_codigo
 FROM gd_esquema.Maestra maestra
-JOIN THIS_IS_FINE.Provincia Prov
+JOIN THIS_IS_FINE.Provincia Prov 
   ON Prov.provincia_detalle = maestra.Proveedor_Provincia
 WHERE maestra.Proveedor_Provincia IS NOT NULL
   AND maestra.Proveedor_Localidad IS NOT NULL
@@ -333,10 +350,10 @@ WHERE maestra.Proveedor_Provincia IS NOT NULL
       WHERE Loc.localidad_detalle = maestra.Proveedor_Localidad and Loc.localidad_provincia = Prov.provincia_codigo
   	)
 END;
-
+GO
 /*insertando localidades de sucursal*/
 
-CREATE PROCEDURE migrar_localidades_sucursal
+CREATE PROCEDURE THIS_IS_FINE.migrar_localidades_sucursal
 AS
 BEGIN
 INSERT INTO THIS_IS_FINE.Localidad (localidad_detalle, localidad_provincia)
@@ -354,10 +371,10 @@ WHERE maestra.Sucursal_Provincia IS NOT NULL
       WHERE Loc.localidad_detalle = maestra.Sucursal_Localidad and Loc.localidad_provincia = Prov.provincia_codigo
   	)
 END;
-
+GO
 /*insertando localidades de cliente*/
 
-CREATE PROCEDURE migrar_localidades_cliente
+CREATE PROCEDURE THIS_IS_FINE.migrar_localidades_cliente
 AS
 BEGIN
 INSERT INTO THIS_IS_FINE.Localidad (localidad_detalle, localidad_provincia)
@@ -365,7 +382,7 @@ SELECT DISTINCT
     maestra.Cliente_Localidad,
     Prov.provincia_codigo
 FROM gd_esquema.Maestra maestra
-JOIN THIS_IS_FINE.Provincia Prov
+JOIN THIS_IS_FINE.Provincia Prov    
   ON Prov.provincia_detalle = maestra.Cliente_Provincia
 WHERE maestra.Cliente_Provincia IS NOT NULL
   AND maestra.Cliente_Localidad IS NOT NULL
@@ -375,7 +392,7 @@ WHERE maestra.Cliente_Provincia IS NOT NULL
       WHERE Loc.localidad_detalle = maestra.Cliente_Localidad and Loc.localidad_provincia = Prov.provincia_codigo
 	)
 END;
-
+GO
 
 /* Migracion de Cliente */
 
@@ -391,12 +408,32 @@ END
 exec migrar_cliente;	
 
 
+/* Migracion de Sucursal*/
 
+CREATE PROCEDURE THIS_IS_FINE.migrar_sucursal
+AS
+BEGIN
 
+     SET NOCOUNT ON;
 
-
-
-
-
-
+     INSERT INTO THIS_IS_FINE.Sucursal (
+	      sucursal_NroSucursal, 
+	      sucursal_localidad,
+	      sucursal_direccion,
+	      sucursal_telefono,
+	      sucursal_mail
+     )
+	 SELECT DISTINCT 
+	      sucursal_NroSucursal, 
+		  Loc.localidad_codigo,
+		  sucursal_direccion,
+		  sucursal_telefono,
+		  sucursal_mail
+     FROM gd_esquema.Maestra maestra
+	 LEFT JOIN THIS_IS_FINE.Localidad Loc /*Creo que va con left porque no llamÃ¡s por PK, y supongo que hay que traer las sucursales aunque no tengan loc*/
+	 ON Loc.localidad_detalle = maestra.Sucursal_Localidad
+	 WHERE sucursal_NroSucursal IS NOT NULL
+	/*CÃ³mo hacÃ­amos entonces con los NULL?*/
+END;
+GO
 
