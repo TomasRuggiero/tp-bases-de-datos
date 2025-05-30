@@ -517,13 +517,18 @@ BEGIN
 		pedido_det_subtotal
 	)
 	SELECT DISTINCT
-		pedido_numero,
-		sillon_codigo,
-		detalle_pedido_cantidad,
-		detalle_pedido_precio,
-		detalle_pedido_subtotal
-		FROM gd_esquema.Maestra maestra
-		WHERE pedido_numero IS NOT NULL AND sillon_codigo IS NOT NULL
+		p.pedido_numero,
+		s.sillon_codigo,
+		m.detalle_pedido_cantidad,
+		m.detalle_pedido_precio,
+		m.detalle_pedido_subtotal
+		FROM gd_esquema.Maestra AS m
+		JOIN THIS_IS_FINE.Pedido AS p
+		ON p.pedido_numero  = m.pedido_numero
+		JOIN THIS_IS_FINE.Sillon AS s
+		ON s.sillon_codigo  = m.sillon_codigo
+		WHERE m.pedido_numero  IS NOT NULL
+		AND m.sillon_codigo  IS NOT NULL;
 END
 GO
 /*Migración de Material*/
