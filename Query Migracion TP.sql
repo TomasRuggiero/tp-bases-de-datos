@@ -477,15 +477,18 @@ BEGIN
     SELECT DISTINCT
         ma.Pedido_Numero,
         ma.Pedido_Fecha,
-        ma.Sucursal_NroSucursal,
+        s.Sucursal_NroSucursal,
         c.cliente_codigo,
         ma.Pedido_Estado,
         ma.Pedido_Total
     FROM gd_esquema.Maestra AS ma
-    LEFT JOIN THIS_IS_FINE.Cliente AS c
+    LEFT JOIN THIS_IS_FINE.Cliente  AS c 
       ON c.cliente_dni = ma.Cliente_Dni
+    LEFT JOIN THIS_IS_FINE.Sucursal AS s 
+      ON s.sucursal_NroSucursal = ma.Sucursal_NroSucursal
     WHERE ma.Pedido_Numero IS NOT NULL
-      AND ma.Sucursal_NroSucursal IS NOT NULL;
+      AND ma.Sucursal_NroSucursal IS NOT NULL
+      AND s.sucursal_NroSucursal IS NOT NULL;
 END;
 GO
 
