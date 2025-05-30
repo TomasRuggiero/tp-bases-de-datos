@@ -99,7 +99,7 @@ create table THIS_IS_FINE.Sucursal (
 	sucursal_direccion nvarchar(255),
 	sucursal_telefono nvarchar(255),
 	sucursal_mail nvarchar(255),
-	CONSTRAINT PK_Sucursal PRIMARY KEY (sucursal_numero)
+	CONSTRAINT PK_Sucursal PRIMARY KEY (sucursal_Nrosucursal)
 )
 
 create table THIS_IS_FINE.detalle_factura (
@@ -379,11 +379,16 @@ END;
 
 /* Migracion de Cliente */
 
-select * from THIS_IS_FINE.Cliente
+create procedure migrar_cliente
+as 
+BEGIN 
+	insert into THIS_IS_FINE.Cliente (cliente_dni, cliente_nombre, cliente_apellido, cliente_fecha_nacimiento, cliente_mail, cliente_telefono, cliente_direccion)
+	select distinct Cliente_Dni, Cliente_Nombre, Cliente_Apellido, Cliente_FechaNacimiento, Cliente_Mail, Cliente_Telefono, Cliente_Direccion
+	from gd_esquema.Maestra
+	where Cliente_Dni is not null and Cliente_Nombre is not null and Cliente_Apellido is not null and Cliente_FechaNacimiento is not null and Cliente_Telefono is not null and Cliente_Direccion is not null 
+END 
 
-insert into THIS_IS_FINE.Cliente (cliente_codigo, cliente_dni, cliente_nombre, cliente_apellido, cliente_fecha_nacimiento, cliente_dni, cliente_telefono, cliente_direccion)
-select distinct gd_esquema.Maestra.clie, gd_esquema.Maestra.Cliente_Dni 
-
+exec migrar_cliente;	
 
 
 
