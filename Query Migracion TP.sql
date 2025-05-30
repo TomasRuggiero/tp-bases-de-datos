@@ -147,19 +147,29 @@ create table THIS_IS_FINE.pedido_cancelacion (
 
 create table THIS_IS_FINE.Sillon (
 	sillon_codigo bigint,
-	-- FK a sillon modelo
-	-- FK a sillon medida
+	sillon_modelo bigint,
+	sillon_medida int,
 	CONSTRAINT PK_Sillon PRIMARY KEY (sillon_codigo)
 )
+/*Creación FK Sillon modelo*/
+ALTER TABLE THIS_IS_FINE.Sillon
+ADD CONSTRAINT FK_Sillon_Modelo
+FOREIGN KEY (sillon_modelo) REFERENCES THIS_IS_FINE.sillon_modelo(sillon_modelo_codigo);
 
-create table THIS_IS_FINE.modelo_sillon (
+/*Creación FK Sillon medida*/
+ALTER TABLE THIS_IS_FINE.Sillon
+ADD CONSTRAINT FK_Sillon_Medida
+FOREIGN KEY (sillon_medida) REFERENCES THIS_IS_FINE.sillon_medida(sillon_medida_codigo);
+
+create table THIS_IS_FINE.sillon_modelo (
 	sillon_modelo_codigo bigint,
 	sillon_modelo_descripcion nvarchar(255),
 	sillon_modelo_precio decimal(18,2),
+	sillon_modelo nvarchar(255),
 	CONSTRAINT PK_ModeloSillon PRIMARY KEY (sillon_modelo_codigo)
 )
 
-create table THIS_IS_FINE.medida_sillon (
+create table THIS_IS_FINE.sillon_medida (
 	sillon_medida_codigo int IDENTITY(1,1),
 	sillon_medida_alto decimal(18,2),
 	sillon_medida_ancho decimal(18,2),
@@ -169,13 +179,13 @@ create table THIS_IS_FINE.medida_sillon (
 )
 
 create table THIS_IS_FINE.Compra (
-	compra_codigo decimal(18,0),
+	compra_numero decimal(18,0),
 	-- FK a Sucursal
 	-- FK a Envio
 	-- FK a Proveedor
 	compra_fecha datetime2(6),
 	compra_total decimal(18,2),
-	CONSTRAINT PK_CompraCodigo PRIMARY KEY (compra_codigo)
+	CONSTRAINT PK_CompraCodigo PRIMARY KEY (compra_numero)
 )
 
 create table THIS_IS_FINE.detalle_compra (
@@ -184,14 +194,13 @@ create table THIS_IS_FINE.detalle_compra (
 	compra_precio_unitario decimal(18,2),
 	compra_cantidad decimal(18,0),
 	compra_subtotal decimal(18,0),
-	--CONSTRAINT PK_DetalleCompra PRIMARY KEY (compra_codigo, material_codigo)
+	--CONSTRAINT PK_DetalleCompra PRIMARY KEY (compra_numero, id_material)
 )
 
 create table THIS_IS_FINE.sillon_material (
-	--FK a sillon
-	-- Fk a material
-	material_cantidad decimal(18,2),
-	--CONSTRAINT PK_SillonMaterial PRIMARY KEY (sillon_codigo, material_codigo)
+	   id_material int,
+	   sillon_codigo bigint,
+	   CONSTRAINT PK_SillonMaterial PRIMARY KEY (id_material, sillon_codigo)
 )
 
 create table THIS_IS_FINE.Material (
@@ -244,9 +253,9 @@ ADD CONSTRAINT FK_Relleno_Material
 FOREIGN KEY (id_material) REFERENCES THIS_IS_FINE.Material (id_material)
 
 create table THIS_IS_FINE.tipo_material (
-     tipo_material_id int IDENTITY(1,1) PRIMARY KEY,
+     tipo_material_id int IDENTITY(1,1),
 	 tipo_material_detalle nvarchar(255)
-	 -- CONSTRAINT PK_TipoMaterial PRIMARY KEY (tipo_material_id)
+	 CONSTRAINT PK_Tipo_Material PRIMARY KEY (tipo_material_id)
 ) /*Ver si dejamos esto as�*/
 
 
@@ -260,21 +269,23 @@ create table THIS_IS_FINE.tipo_material (
 /*Insertar Sill�n Modelo de la tabla maestra a tabla modelo_sillon*/
 GO
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_modelo_sillon
+CREATE PROCEDURE THIS_IS_FINE.migrar_sillon_modelo
 AS
 BEGIN
 
      SET NOCOUNT ON;
 
-     INSERT INTO THIS_IS_FINE.modelo_sillon (
+     INSERT INTO THIS_IS_FINE.sillon_modelo (
 	      sillon_modelo_codigo, 
 	      sillon_modelo_descripcion,
-	      sillon_modelo_precio
+	      sillon_modelo_precio,
+		  sillon_modelo
      )
 	 SELECT DISTINCT 
 	      sillon_modelo_codigo, 
 		  sillon_modelo_descripcion,
 		  sillon_modelo_precio
+		  sillon_modelo
      FROM gd_esquema.Maestra
 	 WHERE sillon_modelo_codigo IS NOT NULL
 	/*C�mo hac�amos entonces con los NULL?*/
@@ -283,13 +294,13 @@ GO
 
 /*Insertar Medidas Sill�n de la tabla maestra a la tabla medida_sillon*/
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_medida_sillon
+CREATE PROCEDURE THIS_IS_FINE.migrar_sillon_medida
 AS
 BEGIN
 
      SET NOCOUNT ON;
 
-     INSERT INTO THIS_IS_FINE.medida_sillon (
+     INSERT INTO THIS_IS_FINE.sillon_medida (
 	     sillon_medida_alto,
 	     sillon_medida_ancho,
 	     sillon_medida_profundidad,
@@ -548,5 +559,57 @@ BEGIN
 	 ON Mat.material_tipo = Tipo.tipo_material_id
 	 WHERE Tipo.tipo_material_detalle = 'Relleno'
 	 AND Relleno_Densidad IS NOT NULL /*ver si se pueden aceptar nulls*/
+END;
+GO
+
+/*Migración de Sillon*/
+
+CREATE PROCEDURE THIS_IS_FINE.migrar_sillon
+AS
+BEGIN
+
+     SET NOCOUNT ON;
+
+     INSERT INTO THIS_IS_FINE.Sillon (
+	     sillon_codigo,
+	     sillon_modelo,
+	     sillon_medida
+     )
+	 SELECT DISTINCT 
+	     sillon_codigo,
+		 Model.sillon_modelo_codigo,
+		 Med.sillon_medida_codigo
+     FROM gd_esquema.Maestra maestra
+	 JOIN THIS_IS_FINE.sillon_modelo Model
+	 ON maestra.Sillon_Modelo_Codigo = Model.sillon_modelo_codigo
+	 JOIN THIS_IS_FINE.sillon_medida Med
+	 ON maestra.Sillon_Medida_Alto+maestra.Sillon_Medida_Ancho+maestra.Sillon_Medida_Precio+maestra.Sillon_Medida_Profundidad =
+	 Med.sillon_medida_alto+Med.sillon_medida_ancho+Med.sillon_medida_precio+Med.sillon_medida_profundidad
+	 WHERE sillon_codigo IS NOT NULL
+END;
+GO
+
+/*Migración de Sillon*/
+
+CREATE PROCEDURE THIS_IS_FINE.migrar_sillon_material
+AS
+BEGIN
+
+     SET NOCOUNT ON;
+
+     INSERT INTO THIS_IS_FINE.sillon_material (
+	     id_material,
+		 sillon_codigo
+     )
+	 SELECT DISTINCT 
+	     Mat.id_material,
+		 Sill.sillon_codigo
+     FROM gd_esquema.Maestra maestra
+	 JOIN THIS_IS_FINE.Sillon Sill 
+	 ON maestra.Sillon_Codigo = Sill.sillon_codigo
+	 JOIN THIS_IS_FINE.Material Mat
+	 ON maestra.Material_Nombre+maestra.Material_Descripcion+maestra.Material_Precio =
+	 Mat.material_nombre+Mat.material_descripcion+Mat.material_precio
+	 WHERE maestra.sillon_codigo IS NOT NULL and maestra.material_nombre IS NOT NULL
 END;
 GO
