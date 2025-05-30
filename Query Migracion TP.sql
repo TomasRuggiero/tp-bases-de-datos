@@ -5,12 +5,11 @@ GO
 
 /*if not exists(SELECT * from sys.schemas where name='THIS_IS_FINE')
 BEGIN
-EXEC*/(/*'*/ create schema THIS_IS_FINE;/*'*/)
---END
+EXEC(' create schema THIS_IS_FINE;')
+END
+*/
 
 drop table if exists THIS_IS_FINE.Provincia;
-
-drop table if exists THIS_IS_FINE.Localidad;
 
 /* DROPEO las tablas para crear correctamente las PKs */
 
@@ -122,27 +121,13 @@ create table THIS_IS_FINE.detalle_factura (
 create table THIS_IS_FINE.Pedido (
 	pedido_numero decimal(18,0),
 	pedido_fecha datetime2(6),
-	--FK a Sucursal 
+	pedido_sucursal BIGINT,
 	pedido_estado nvarchar(255),
-	--FK a cliente
+	pedido_cliente INT,
 	pedido_total decimal(18,2),
-	CONSTRAINT PK_Pedido PRIMARY KEY (pedido_numero)
-)
-
-create table THIS_IS_FINE.detalle_pedido (
-	--FK a Pedido 
-	-- FK a sillon
-	-- PK es (pedido, sillon)
-	pedido_det_cantidad bigint,
-	pedido_det_precio decimal(18,2),
-	--pedido_det_subtotal discutir que hacer con esto
-)
-
-create table THIS_IS_FINE.pedido_cancelacion (
-	cancel_pedido_codigo int,
-	cancel_pedido_fecha datetime2(6),
-	--FK a pedido
-	CONSTRAINT PK_Pedido_cancelacion PRIMARY KEY (cancel_pedido_codigo)
+	CONSTRAINT PK_Pedido PRIMARY KEY (pedido_numero),
+	CONSTRAINT FK_pedido_sucursal FOREIGN KEY (pedido_sucursal) REFERENCES THIS_IS_FINE.Sucursal(sucursal_NroSucursal),
+	CONSTRAINT FK_pedido_cliente FOREIGN KEY (pedido_cliente) REFERENCES THIS_IS_FINE.Cliente(cliente_codigo)
 )
 
 create table THIS_IS_FINE.Sillon (
@@ -150,6 +135,40 @@ create table THIS_IS_FINE.Sillon (
 	sillon_modelo bigint,
 	sillon_medida int,
 	CONSTRAINT PK_Sillon PRIMARY KEY (sillon_codigo)
+)
+
+CREATE TABLE THIS_IS_FINE.detalle_pedido (
+    -- Columnas FK
+    pedido_numero   DECIMAL(18,0)   NOT NULL,
+    sillon_codigo   BIGINT          NOT NULL,
+
+    -- Datos propios
+    pedido_det_cantidad   BIGINT        NULL,
+    pedido_det_precio     DECIMAL(18,2) NULL,
+	pedido_det_subtotal	  BIGINT		NULL,
+
+    -- PK compuesta
+    CONSTRAINT PK_detalle_pedido
+      PRIMARY KEY (pedido_numero, sillon_codigo),
+
+    -- FK a Pedido
+    CONSTRAINT FK_detalle_pedido_Pedido
+      FOREIGN KEY (pedido_numero)
+      REFERENCES THIS_IS_FINE.Pedido(pedido_numero),
+
+    -- FK a Sillon
+    CONSTRAINT FK_detalle_pedido_Sillon
+      FOREIGN KEY (sillon_codigo)
+      REFERENCES THIS_IS_FINE.Sillon(sillon_codigo)
+);
+GO
+
+
+create table THIS_IS_FINE.pedido_cancelacion (
+	cancel_pedido_codigo int,
+	cancel_pedido_fecha datetime2(6),
+	--FK a pedido
+	CONSTRAINT PK_Pedido_cancelacion PRIMARY KEY (cancel_pedido_codigo)
 )
 /*Creación FK Sillon modelo*/
 ALTER TABLE THIS_IS_FINE.Sillon
@@ -422,9 +441,7 @@ BEGIN
 	from gd_esquema.Maestra
 	where Cliente_Dni is not null and Cliente_Nombre is not null and Cliente_Apellido is not null and Cliente_FechaNacimiento is not null and Cliente_Telefono is not null and Cliente_Direccion is not null 
 END 
-
-exec migrar_cliente;	
-
+GO
 
 /* Migracion de Sucursal*/
 
@@ -455,6 +472,65 @@ BEGIN
 END;
 GO
 
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_pedido
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO THIS_IS_FINE.Pedido (
+        pedido_numero,
+        pedido_fecha,
+        pedido_sucursal,
+        pedido_cliente,
+        pedido_estado,
+        pedido_total
+    )
+    SELECT DISTINCT
+        ma.Pedido_Numero,
+        ma.Pedido_Fecha,
+        s.Sucursal_NroSucursal,
+        c.cliente_codigo,
+        ma.Pedido_Estado,
+        ma.Pedido_Total
+    FROM gd_esquema.Maestra AS ma
+    LEFT JOIN THIS_IS_FINE.Cliente  AS c 
+      ON c.cliente_dni = ma.Cliente_Dni
+    LEFT JOIN THIS_IS_FINE.Sucursal AS s 
+      ON s.sucursal_NroSucursal = ma.Sucursal_NroSucursal
+    WHERE ma.Pedido_Numero IS NOT NULL
+      AND ma.Sucursal_NroSucursal IS NOT NULL
+      AND s.sucursal_NroSucursal IS NOT NULL;
+END;
+GO
+
+CREATE PROCEDURE THIS_IS_FINE.migrar_detalle_pedido
+AS
+BEGIN
+
+	SET NOCOUNT ON;
+	
+	INSERT INTO THIS_IS_FINE.detalle_pedido (
+		pedido_numero,
+		sillon_codigo,
+		pedido_det_cantidad,
+		pedido_det_precio,
+		pedido_det_subtotal
+	)
+	SELECT DISTINCT
+		p.pedido_numero,
+		s.sillon_codigo,
+		m.detalle_pedido_cantidad,
+		m.detalle_pedido_precio,
+		m.detalle_pedido_subtotal
+		FROM gd_esquema.Maestra AS m
+		JOIN THIS_IS_FINE.Pedido AS p
+		ON p.pedido_numero  = m.pedido_numero
+		JOIN THIS_IS_FINE.Sillon AS s
+		ON s.sillon_codigo  = m.sillon_codigo
+		WHERE m.pedido_numero  IS NOT NULL
+		AND m.sillon_codigo  IS NOT NULL;
+END
+GO
 /*Migración de Material*/
 
 CREATE PROCEDURE THIS_IS_FINE.migrar_material
