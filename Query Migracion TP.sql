@@ -5,8 +5,9 @@ GO
 
 /*if not exists(SELECT * from sys.schemas where name='THIS_IS_FINE')
 BEGIN
-EXEC*/(/*'*/ create schema THIS_IS_FINE;/*'*/)
---END
+EXEC(' create schema THIS_IS_FINE;')
+END
+*/
 
 drop table if exists THIS_IS_FINE.Provincia;
 
@@ -120,11 +121,13 @@ create table THIS_IS_FINE.detalle_factura (
 create table THIS_IS_FINE.Pedido (
 	pedido_numero decimal(18,0),
 	pedido_fecha datetime2(6),
-	--FK a Sucursal 
+	pedido_sucursal BIGINT,
 	pedido_estado nvarchar(255),
-	--FK a cliente
+	pedido_cliente INT,
 	pedido_total decimal(18,2),
-	CONSTRAINT PK_Pedido PRIMARY KEY (pedido_numero)
+	CONSTRAINT PK_Pedido PRIMARY KEY (pedido_numero),
+	CONSTRAINT FK_pedido_sucursal FOREIGN KEY (pedido_sucursal) REFERENCES THIS_IS_FINE.Sucursal(sucursal_NroSucursal),
+	CONSTRAINT FK_pedido_cliente FOREIGN KEY (pedido_cliente) REFERENCES THIS_IS_FINE.Cliente(cliente_codigo)
 )
 
 create table THIS_IS_FINE.Sillon (
@@ -427,9 +430,7 @@ BEGIN
 	from gd_esquema.Maestra
 	where Cliente_Dni is not null and Cliente_Nombre is not null and Cliente_Apellido is not null and Cliente_FechaNacimiento is not null and Cliente_Telefono is not null and Cliente_Direccion is not null 
 END 
-
-exec migrar_cliente;	
-
+GO
 
 /* Migracion de Sucursal*/
 
@@ -460,26 +461,32 @@ BEGIN
 END;
 GO
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_pedido
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_pedido
 AS
 BEGIN
+    SET NOCOUNT ON;
 
-	SET NOCOUNT ON;
-
-	INSERT INTO THIS_IS_FINE.Pedido (
-		pedido_numero,
-		pedido_fecha,
-		pedido_estado,
-		pedido_total
-	)
-	SELECT DISTINCT
-		pedido_numero,
-		pedido_fecha,
-		pedido_estado,
-		pedido_total
-	FROM gd_esquema.Maestra maestra
-	WHERE pedido_numero IS NOT NULL
-END
+    INSERT INTO THIS_IS_FINE.Pedido (
+        pedido_numero,
+        pedido_fecha,
+        pedido_sucursal,
+        pedido_cliente,
+        pedido_estado,
+        pedido_total
+    )
+    SELECT DISTINCT
+        ma.Pedido_Numero,
+        ma.Pedido_Fecha,
+        ma.Sucursal_NroSucursal,
+        c.cliente_codigo,
+        ma.Pedido_Estado,
+        ma.Pedido_Total
+    FROM gd_esquema.Maestra AS ma
+    LEFT JOIN THIS_IS_FINE.Cliente AS c
+      ON c.cliente_dni = ma.Cliente_Dni
+    WHERE ma.Pedido_Numero IS NOT NULL
+      AND ma.Sucursal_NroSucursal IS NOT NULL;
+END;
 GO
 
 CREATE PROCEDURE THIS_IS_FINE.migrar_detalle_pedido
@@ -504,6 +511,7 @@ BEGIN
 		FROM gd_esquema.Maestra maestra
 		WHERE pedido_numero IS NOT NULL AND sillon_codigo IS NOT NULL
 END
+GO
 /*Migración de Material*/
 
 CREATE PROCEDURE THIS_IS_FINE.migrar_material
