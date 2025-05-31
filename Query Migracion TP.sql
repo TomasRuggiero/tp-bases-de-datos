@@ -29,8 +29,8 @@ DROP TABLE IF EXISTS THIS_IS_FINE.Factura;
 
 -- Tablas relativamente independientes
 DROP TABLE IF EXISTS THIS_IS_FINE.Sillon;
-DROP TABLE IF EXISTS THIS_IS_FINE.modelo_sillon;
-DROP TABLE IF EXISTS THIS_IS_FINE.medida_sillon;
+DROP TABLE IF EXISTS THIS_IS_FINE.sillon_medida;
+DROP TABLE IF EXISTS THIS_IS_FINE.sillon_modelo;
 DROP TABLE IF EXISTS THIS_IS_FINE.Material;
 DROP TABLE IF EXISTS THIS_IS_FINE.tipo_material;
 DROP TABLE IF EXISTS THIS_IS_FINE.Proveedor;
@@ -63,8 +63,7 @@ create table THIS_IS_FINE.Provincia (
 create table THIS_IS_FINE.Localidad (
 	localidad_codigo INTEGER IDENTITY(1,1),
 	localidad_detalle NVARCHAR(255),
-	localidad_provincia INTEGER
-	-- Agregar FK a Provincia
+	localidad_provincia INTEGER -- FK a Provincia
 	CONSTRAINT PK_Localidad PRIMARY KEY (localidad_codigo)
 )
 ALTER TABLE THIS_IS_FINE.Localidad
@@ -78,17 +77,18 @@ create table THIS_IS_FINE.Proveedor (
 	proveedor_razon_social NVARCHAR(100),
 	proveedor_direccion NVARCHAR(100),
 	proveedor_telefono	NVARCHAR(100),
-	proveedor_mail NVARCHAR(100)
-	-- Agregar FK a Localidad
+	proveedor_mail NVARCHAR(100),
+	proveedor_localidad INTEGER -- FK a Localidad
 	CONSTRAINT PK_Proveedor PRIMARY KEY (proveedor_codigo)
 )
 create table THIS_IS_FINE.Sucursal (
+    sucursal_id int IDENTITY(1,1),
 	sucursal_NroSucursal bigint, 
-	sucursal_localidad int,
+	sucursal_localidad INTEGER, --FK a localidad
 	sucursal_direccion nvarchar(255),
 	sucursal_telefono nvarchar(255),
 	sucursal_mail nvarchar(255),
-	CONSTRAINT PK_Sucursal PRIMARY KEY (sucursal_Nrosucursal)
+	CONSTRAINT PK_Sucursal PRIMARY KEY (sucursal_id)
 )
 
 
@@ -141,39 +141,36 @@ create table THIS_IS_FINE.detalle_factura (
 )
 
 
-
-
-create table THIS_IS_FINE.detalle_pedido (
-	--FK a Pedido 
-	-- FK a sillon
-	-- PK es (pedido, sillon)
-	pedido_det_cantidad bigint,
-	pedido_det_precio decimal(18,2),
-	--pedido_det_subtotal discutir que hacer con esto
+create table THIS_IS_FINE.Sillon (
+	sillon_codigo bigint,
+	sillon_id_modelo BIGINT,--FK sillon_modelo
+	sillon_id_medida BIGINT,-- Fk sillon_medida
+	CONSTRAINT PK_Sillon PRIMARY KEY (sillon_codigo)
 )
+
+CREATE TABLE THIS_IS_FINE.detalle_pedido (
+    -- Columnas FK
+    pedido_numero   DECIMAL(18,0)   NOT NULL,
+    sillon_codigo   BIGINT          NOT NULL,
+
+    -- Datos propios
+    pedido_det_cantidad   BIGINT        NULL,
+    pedido_det_precio     DECIMAL(18,2) NULL,
+	pedido_det_subtotal	  BIGINT		NULL,
+
+    -- PK compuesta
+    CONSTRAINT PK_detalle_pedido
+      PRIMARY KEY (pedido_numero, sillon_codigo),
+
+ );
+--GO
 
 create table THIS_IS_FINE.pedido_cancelacion (
 	cancel_pedido_codigo int,
 	cancel_pedido_fecha datetime2(6),
-	--FK a pedido
+	cancel_id_pedido decimal(18,0),--FK a pedido
 	CONSTRAINT PK_Pedido_cancelacion PRIMARY KEY (cancel_pedido_codigo)
 )
-
-create table THIS_IS_FINE.Sillon (
-	sillon_codigo bigint,
-	sillon_modelo bigint,
-	sillon_medida int,
-	CONSTRAINT PK_Sillon PRIMARY KEY (sillon_codigo)
-)
-/*Creación FK Sillon modelo*/
-ALTER TABLE THIS_IS_FINE.Sillon
-ADD CONSTRAINT FK_Sillon_Modelo
-FOREIGN KEY (sillon_modelo) REFERENCES THIS_IS_FINE.sillon_modelo(sillon_modelo_codigo);
-
-/*Creación FK Sillon medida*/
-ALTER TABLE THIS_IS_FINE.Sillon
-ADD CONSTRAINT FK_Sillon_Medida
-FOREIGN KEY (sillon_medida) REFERENCES THIS_IS_FINE.sillon_medida(sillon_medida_codigo);
 
 create table THIS_IS_FINE.sillon_modelo (
 	sillon_modelo_codigo bigint,
@@ -192,28 +189,30 @@ create table THIS_IS_FINE.sillon_medida (
 	CONSTRAINT PK_MedidaSillon PRIMARY KEY (sillon_medida_codigo)
 )
 
+
 create table THIS_IS_FINE.Compra (
 	compra_numero decimal(18,0),
-	-- FK a Sucursal
-	-- FK a Envio
-	-- FK a Proveedor
+	compra_sucursal bigint,-- FK a Sucursal
+	compra_envio decimal(18,0),-- FK a Envio
+	compra_proveedor int,-- FK a Proveedor
 	compra_fecha datetime2(6),
 	compra_total decimal(18,2),
 	CONSTRAINT PK_CompraCodigo PRIMARY KEY (compra_numero)
 )
 
+
 create table THIS_IS_FINE.detalle_compra (
-	-- FK a Compra
-	-- FK a Material
+	compra_numero decimal(18,0), -- FK a Compra
+	compra_material int, -- FK a Material
 	compra_precio_unitario decimal(18,2),
 	compra_cantidad decimal(18,0),
 	compra_subtotal decimal(18,0),
-	--CONSTRAINT PK_DetalleCompra PRIMARY KEY (compra_numero, id_material)
+	CONSTRAINT PK_DetalleCompra PRIMARY KEY (compra_numero, compra_material)
 )
 
 create table THIS_IS_FINE.sillon_material (
-	   id_material int,
-	   sillon_codigo bigint,
+	   id_material int, --FK a material
+	   sillon_codigo bigint, -- FK a sillon
 	   CONSTRAINT PK_SillonMaterial PRIMARY KEY (id_material, sillon_codigo)
 )
 
@@ -226,45 +225,27 @@ create table THIS_IS_FINE.Material (
 	CONSTRAINT PK_Material PRIMARY KEY (id_material)
 )
 
-/*Creación FK Material_tipo*/
-ALTER TABLE THIS_IS_FINE.Material
-ADD CONSTRAINT FK_Material_Tipo
-FOREIGN KEY (material_tipo) REFERENCES THIS_IS_FINE.tipo_material(tipo_material_id);
 
 create table THIS_IS_FINE.Madera (
-    id_material int,
+    id_material int, --FK a material
 	madera_color nvarchar(255),
 	madera_dureza nvarchar(255)
 	CONSTRAINT PK_Madera PRIMARY KEY (id_material),
 )
 
-/*Creación FK Madera a Material*/
-ALTER TABLE THIS_IS_FINE.Madera
-ADD CONSTRAINT FK_Madera_Material
-FOREIGN KEY (id_material) REFERENCES THIS_IS_FINE.Material (id_material) 
-
-
 create table THIS_IS_FINE.Tela (
-    id_material int,
+    id_material int, --FK a material
 	tela_color nvarchar(255),
 	tela_textura nvarchar(255)
 	CONSTRAINT PK_Tela PRIMARY KEY (id_material),
 )
 
-/*Creación FK Tela a Material*/
-ALTER TABLE THIS_IS_FINE.Tela
-ADD CONSTRAINT FK_Tela_Material 
-FOREIGN KEY (id_material) REFERENCES THIS_IS_FINE.Material(id_material) 
 
 create table THIS_IS_FINE.Relleno (
-    id_material int,
+    id_material int, --FK a material
 	relleno_densidad decimal(38,2)
 	CONSTRAINT PK_Relleno PRIMARY KEY (id_material),
 )
-/*Creación FK Relleno a Material*/
-ALTER TABLE THIS_IS_FINE.Relleno
-ADD CONSTRAINT FK_Relleno_Material 
-FOREIGN KEY (id_material) REFERENCES THIS_IS_FINE.Material (id_material)
 
 create table THIS_IS_FINE.tipo_material (
      tipo_material_id int IDENTITY(1,1),
@@ -283,6 +264,8 @@ create table THIS_IS_FINE.tipo_material (
 /*Insertar Sill�n Modelo de la tabla maestra a tabla modelo_sillon*/
 GO
 
+      --------------   MIGRACIONES   -------------- 
+
 CREATE PROCEDURE THIS_IS_FINE.migrar_sillon_modelo
 AS
 BEGIN
@@ -292,19 +275,21 @@ BEGIN
      INSERT INTO THIS_IS_FINE.sillon_modelo (
 	      sillon_modelo_codigo, 
 	      sillon_modelo_descripcion,
-	      sillon_modelo_precio,
+		  sillon_precio,
 		  sillon_modelo
      )
 	 SELECT DISTINCT 
 	      sillon_modelo_codigo, 
 		  sillon_modelo_descripcion,
-		  sillon_modelo_precio
+		  sillon_precio,
 		  sillon_modelo
      FROM gd_esquema.Maestra
 	 WHERE sillon_modelo_codigo IS NOT NULL
-	/*C�mo hac�amos entonces con los NULL?*/
 END;
 GO
+
+exec THIS_IS_FINE.migrar_sillon_modelo -- QUEDA TODA LA TABLA EN NULLS Y ESTA BIEN
+select * from THIS_IS_FINE.sillon_modelo
 
 /*Insertar Medidas Sill�n de la tabla maestra a la tabla medida_sillon*/
 
@@ -318,16 +303,20 @@ BEGIN
 	     sillon_medida_alto,
 	     sillon_medida_ancho,
 	     sillon_medida_profundidad,
-	     sillon_medida_precio
+		 sillon_medida_precio
 	 )
 	 SELECT DISTINCT
 	     sillon_medida_alto,
 	     sillon_medida_ancho,
 	     sillon_medida_profundidad,
-	     sillon_medida_precio 
+		 sillon_medida_precio
      FROM gd_esquema.Maestra
+	 WHERE Sillon_Medida_Alto IS NOT NULL AND Sillon_Medida_Ancho IS NOT NULL 
+	 AND Sillon_Medida_Profundidad IS NOT NULL AND Sillon_Medida_Precio IS NOT NULL  
 END;
 GO
+
+exec THIS_IS_FINE.migrar_sillon_medida
 
 /*Insertar Tipo Material de la tabla maestra a la tabla tipo_material*/
 
@@ -343,6 +332,10 @@ BEGIN
      FROM gd_esquema.Maestra
 END; /*Despu�s vemos si esto lo dejamos as�*/
 GO
+
+exec THIS_IS_FINE.migrar_tipo_material
+
+select * from THIS_IS_FINE.tipo_material
 
 /*Insertar provincia de la tabla maestra a tabla provincia*/
 
@@ -362,82 +355,108 @@ WHERE provincia IS NOT NULL;
 END;
 GO
 
-/*insertando localidades de proveedor*/
+exec THIS_IS_FINE.migrar_provincia
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_localidades_proveedor
+select * from THIS_IS_FINE.Provincia
+
+/*insertando localidades de proveedor*/
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_localidades_proveedor
 AS
 BEGIN
-INSERT INTO THIS_IS_FINE.Localidad (localidad_detalle, localidad_provincia)
-SELECT DISTINCT
-    maestra.Proveedor_Localidad,
-    Prov.provincia_codigo
-FROM gd_esquema.Maestra maestra
-JOIN THIS_IS_FINE.Provincia Prov 
-  ON Prov.provincia_detalle = maestra.Proveedor_Provincia
-WHERE maestra.Proveedor_Provincia IS NOT NULL
-  AND maestra.Proveedor_Localidad IS NOT NULL
-  AND NOT EXISTS (
-      SELECT 1
-      FROM THIS_IS_FINE.Localidad Loc
-      WHERE Loc.localidad_detalle = maestra.Proveedor_Localidad and Loc.localidad_provincia = Prov.provincia_codigo
-  	)
+    INSERT INTO THIS_IS_FINE.Localidad (localidad_detalle, localidad_provincia)
+    SELECT DISTINCT
+        RTRIM(LTRIM(maestra.Proveedor_Localidad)),
+        Prov.provincia_codigo
+    FROM gd_esquema.Maestra maestra
+    JOIN THIS_IS_FINE.Provincia Prov 
+      ON RTRIM(LTRIM(Prov.provincia_detalle)) = RTRIM(LTRIM(maestra.Proveedor_Provincia))
+    WHERE maestra.Proveedor_Provincia IS NOT NULL
+      AND maestra.Proveedor_Localidad IS NOT NULL
+      AND NOT EXISTS (
+          SELECT 1
+          FROM THIS_IS_FINE.Localidad Loc
+          WHERE Loc.localidad_detalle = RTRIM(LTRIM(maestra.Proveedor_Localidad))
+            AND Loc.localidad_provincia = Prov.provincia_codigo
+      )
 END;
 GO
+
+exec THIS_IS_FINE.migrar_localidades_proveedor
+
+select distinct localidad_detalle  from THIS_IS_FINE.Localidad
+
+delete from THIS_IS_FINE.Localidad
+
+DBCC CHECKIDENT ('THIS_IS_FINE.Localidad', RESEED, 0);
+
+select * from THIS_IS_FINE.Localidad
+join THIS_IS_FINE.Provincia on localidad_provincia = provincia_codigo
 /*insertando localidades de sucursal*/
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_localidades_sucursal
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_localidades_sucursal
 AS
 BEGIN
-INSERT INTO THIS_IS_FINE.Localidad (localidad_detalle, localidad_provincia)
-SELECT DISTINCT
-    maestra.Sucursal_Localidad,
-    Prov.provincia_codigo
-FROM gd_esquema.Maestra maestra
-JOIN THIS_IS_FINE.Provincia Prov
-  ON Prov.provincia_detalle = maestra.Sucursal_Provincia
-WHERE maestra.Sucursal_Provincia IS NOT NULL
-  AND maestra.Sucursal_Localidad IS NOT NULL
-  AND NOT EXISTS (
-      SELECT 1
-      FROM THIS_IS_FINE.Localidad Loc
-      WHERE Loc.localidad_detalle = maestra.Sucursal_Localidad and Loc.localidad_provincia = Prov.provincia_codigo
-  	)
+    INSERT INTO THIS_IS_FINE.Localidad (localidad_detalle, localidad_provincia)
+    SELECT DISTINCT
+        RTRIM(LTRIM(maestra.Sucursal_Localidad)),
+        Prov.provincia_codigo
+    FROM gd_esquema.Maestra maestra
+    JOIN THIS_IS_FINE.Provincia Prov
+      ON RTRIM(LTRIM(Prov.provincia_detalle)) = RTRIM(LTRIM(maestra.Sucursal_Provincia))
+    WHERE maestra.Sucursal_Provincia IS NOT NULL
+      AND maestra.Sucursal_Localidad IS NOT NULL
+      AND NOT EXISTS (
+          SELECT 1
+          FROM THIS_IS_FINE.Localidad Loc
+          WHERE Loc.localidad_detalle = RTRIM(LTRIM(maestra.Sucursal_Localidad))
+            AND Loc.localidad_provincia = Prov.provincia_codigo
+      )
 END;
 GO
 /*insertando localidades de cliente*/
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_localidades_cliente
+exec THIS_IS_FINE.migrar_localidades_sucursal
+select * from THIS_IS_FINE.Localidad
+
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_localidades_cliente
 AS
 BEGIN
-INSERT INTO THIS_IS_FINE.Localidad (localidad_detalle, localidad_provincia)
-SELECT DISTINCT
-    maestra.Cliente_Localidad,
-    Prov.provincia_codigo
-FROM gd_esquema.Maestra maestra
-JOIN THIS_IS_FINE.Provincia Prov    
-  ON Prov.provincia_detalle = maestra.Cliente_Provincia
-WHERE maestra.Cliente_Provincia IS NOT NULL
-  AND maestra.Cliente_Localidad IS NOT NULL
-  AND NOT EXISTS (
-      SELECT 1
-      FROM THIS_IS_FINE.Localidad Loc
-      WHERE Loc.localidad_detalle = maestra.Cliente_Localidad and Loc.localidad_provincia = Prov.provincia_codigo
-	)
+    INSERT INTO THIS_IS_FINE.Localidad (localidad_detalle, localidad_provincia)
+    SELECT DISTINCT
+        RTRIM(LTRIM(maestra.Cliente_Localidad)),
+        Prov.provincia_codigo
+    FROM gd_esquema.Maestra maestra
+    JOIN THIS_IS_FINE.Provincia Prov    
+      ON RTRIM(LTRIM(Prov.provincia_detalle)) = RTRIM(LTRIM(maestra.Cliente_Provincia))
+    WHERE maestra.Cliente_Provincia IS NOT NULL
+      AND maestra.Cliente_Localidad IS NOT NULL
+      AND NOT EXISTS (
+          SELECT 1
+          FROM THIS_IS_FINE.Localidad Loc
+          WHERE Loc.localidad_detalle = RTRIM(LTRIM(maestra.Cliente_Localidad))
+            AND Loc.localidad_provincia = Prov.provincia_codigo
+      )
 END;
 GO
 
+exec THIS_IS_FINE.migrar_localidades_cliente
+
 /* Migracion de Cliente */
 
-create procedure THIS_IS_FINE.migrar_cliente
+create or alter procedure THIS_IS_FINE.migrar_cliente
 as 
 BEGIN 
-	insert into THIS_IS_FINE.Cliente (cliente_dni, cliente_nombre, cliente_apellido, cliente_fecha_nacimiento, cliente_mail, cliente_telefono, cliente_direccion)
-	select distinct Cliente_Dni, Cliente_Nombre, Cliente_Apellido, Cliente_FechaNacimiento, Cliente_Mail, Cliente_Telefono, Cliente_Direccion
-	from gd_esquema.Maestra
-	where Cliente_Dni is not null and Cliente_Nombre is not null and Cliente_Apellido is not null and Cliente_FechaNacimiento is not null and Cliente_Telefono is not null and Cliente_Direccion is not null 
+	insert into THIS_IS_FINE.Cliente (cliente_dni, cliente_nombre, cliente_apellido, cliente_fecha_nacimiento, cliente_mail, cliente_telefono, cliente_direccion, cliente_localidad)
+	select distinct Cliente_Dni, Cliente_Nombre, Cliente_Apellido, Cliente_FechaNacimiento, Cliente_Mail, Cliente_Telefono, Cliente_Direccion, localidad_codigo
+	from gd_esquema.Maestra maestra
+	join THIS_IS_FINE.Localidad on maestra.Cliente_Localidad = localidad_detalle
+	join THIS_IS_FINE.Provincia on maestra.Cliente_Provincia = provincia_detalle
+	where Cliente_Dni is not null and Cliente_Nombre is not null and Cliente_Apellido is not null and Cliente_FechaNacimiento is not null and Cliente_Telefono is not null and Cliente_Direccion is not null and Cliente_Localidad is not null
+	and localidad_provincia = provincia_codigo
 END 
 GO
 
+exec THIS_IS_FINE.migrar_cliente
 
 /* Migracion de Sucursal*/
 
@@ -468,7 +487,7 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_pedido
+CREATE PROCEDURE THIS_IS_FINE.migrar_pedido
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -513,16 +532,20 @@ BEGIN
 		pedido_det_subtotal
 	)
 	SELECT DISTINCT
-		pedido_numero,
-		sillon_codigo,
-		detalle_pedido_cantidad,
-		detalle_pedido_precio,
-		detalle_pedido_subtotal
-		FROM gd_esquema.Maestra maestra
-		WHERE pedido_numero IS NOT NULL AND sillon_codigo IS NOT NULL
+		p.pedido_numero,
+		s.sillon_codigo,
+		m.detalle_pedido_cantidad,
+		m.detalle_pedido_precio,
+		m.detalle_pedido_subtotal
+		FROM gd_esquema.Maestra AS m
+		JOIN THIS_IS_FINE.Pedido AS p
+		ON p.pedido_numero  = m.pedido_numero
+		JOIN THIS_IS_FINE.Sillon AS s
+		ON s.sillon_codigo  = m.sillon_codigo
+		WHERE m.pedido_numero  IS NOT NULL
+		AND m.sillon_codigo  IS NOT NULL;
 END
 GO
-
 /*Migración de Material*/
 
 CREATE PROCEDURE THIS_IS_FINE.migrar_material
@@ -742,60 +765,6 @@ BEGIN
 END;
 GO
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_detalle_pedido
-AS
-BEGIN
-
-	SET NOCOUNT ON;
-	
-	INSERT INTO THIS_IS_FINE.detalle_pedido (
-		pedido_numero,
-		sillon_codigo,
-		pedido_det_cantidad,
-		pedido_det_precio,
-		pedido_det_subtotal
-	)
-	SELECT DISTINCT
-		pedido_numero,
-		sillon_codigo,
-		detalle_pedido_cantidad,
-		detalle_pedido_precio,
-		detalle_pedido_subtotal
-		FROM gd_esquema.Maestra maestra
-		WHERE pedido_numero IS NOT NULL AND sillon_codigo IS NOT NULL
-END;
-GO
-
-CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_pedido
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    INSERT INTO THIS_IS_FINE.Pedido (
-        pedido_numero,
-        pedido_fecha,
-        pedido_sucursal,
-        pedido_cliente,
-        pedido_estado,
-        pedido_total
-    )
-    SELECT DISTINCT
-        ma.Pedido_Numero,
-        ma.Pedido_Fecha,
-        s.Sucursal_NroSucursal,
-        c.cliente_codigo,
-        ma.Pedido_Estado,
-        ma.Pedido_Total
-    FROM gd_esquema.Maestra AS ma
-    LEFT JOIN THIS_IS_FINE.Cliente  AS c 
-      ON c.cliente_dni = ma.Cliente_Dni
-    LEFT JOIN THIS_IS_FINE.Sucursal AS s 
-      ON s.sucursal_NroSucursal = ma.Sucursal_NroSucursal
-    WHERE ma.Pedido_Numero IS NOT NULL
-      AND ma.Sucursal_NroSucursal IS NOT NULL
-      AND s.sucursal_NroSucursal IS NOT NULL;
-END;
-GO
 
 
 
