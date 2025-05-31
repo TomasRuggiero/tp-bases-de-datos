@@ -884,3 +884,17 @@ exec THIS_IS_FINE.migrar_detalle_pedido;
 exec THIS_IS_FINE.migrar_detalle_factura;
 GO*/
 
+-- USE GD1C2025;
+-- GO
+
+-- DECLARE @sql NVARCHAR(MAX) = N'';
+
+-- -- 1) Genero un string con un DROP por cada procedimiento en el esquema THIS_IS_FINE
+-- SELECT @sql += 
+--     N'DROP PROCEDURE THIS_IS_FINE.' + QUOTENAME(p.name) + N';' + CHAR(13) + CHAR(10)
+-- FROM sys.procedures AS p
+-- WHERE SCHEMA_NAME(p.schema_id) = 'THIS_IS_FINE';
+
+-- -- 2) Ejecuto el batch que borrará todos esos procedimientos
+-- EXEC sp_executesql @sql;
+-- GO
