@@ -67,9 +67,9 @@ create table THIS_IS_FINE.Localidad (
 	localidad_provincia INTEGER -- FK a Provincia
 	CONSTRAINT PK_Localidad PRIMARY KEY (localidad_codigo)
 )
-ALTER TABLE THIS_IS_FINE.Localidad
+/* ALTER TABLE THIS_IS_FINE.Localidad
 ADD CONSTRAINT FK_localidad_provincia FOREIGN KEY (localidad_provincia)
-REFERENCES THIS_IS_FINE.Provincia(provincia_codigo);
+REFERENCES THIS_IS_FINE.Provincia(provincia_codigo); */
 
 
 create table THIS_IS_FINE.Proveedor (
@@ -82,6 +82,7 @@ create table THIS_IS_FINE.Proveedor (
 	proveedor_localidad INTEGER -- FK a Localidad
 	CONSTRAINT PK_Proveedor PRIMARY KEY (proveedor_codigo)
 )
+
 create table THIS_IS_FINE.Sucursal (
     sucursal_id int IDENTITY(1,1),
 	sucursal_NroSucursal bigint, 
@@ -95,9 +96,9 @@ create table THIS_IS_FINE.Sucursal (
 
 /*Creación de FK Sucursal_localidad*/
 
-ALTER TABLE THIS_IS_FINE.Sucursal
+/*ALTER TABLE THIS_IS_FINE.Sucursal
 ADD CONSTRAINT FK_Sucursal_Localidad
-FOREIGN KEY (sucursal_localidad) REFERENCES THIS_IS_FINE.Localidad(localidad_codigo);
+FOREIGN KEY (sucursal_localidad) REFERENCES THIS_IS_FINE.Localidad(localidad_codigo); */
 
 create table THIS_IS_FINE.Pedido (
 	pedido_numero decimal(18,0),
@@ -109,8 +110,8 @@ create table THIS_IS_FINE.Pedido (
 	pedido_cliente int,
 	pedido_total decimal(18,2),
 	CONSTRAINT PK_Pedido PRIMARY KEY (pedido_numero),
-	CONSTRAINT PK_Pedido_sucursal foreign key(pedido_sucursal) references THIS_IS_FINE.Sucursal(sucursal_id),
-	CONSTRAINT FK_Pedido_cliente FOREIGN KEY (pedido_cliente) REFERENCES THIS_IS_FINE.Cliente(cliente_codigo)
+	/*CONSTRAINT PK_Pedido_sucursal foreign key(pedido_sucursal) references THIS_IS_FINE.Sucursal(sucursal_id),
+	CONSTRAINT FK_Pedido_cliente FOREIGN KEY (pedido_cliente) REFERENCES THIS_IS_FINE.Cliente(cliente_codigo) */
 )
 
 create table THIS_IS_FINE.Factura (
@@ -122,8 +123,8 @@ create table THIS_IS_FINE.Factura (
 	factura_sucursal int,
 	factura_total decimal(38,2),
 	CONSTRAINT PK_Factura PRIMARY KEY (factura_numero),
-	CONSTRAINT FK_factura_cliente FOREIGN KEY (factura_cliente) REFERENCES THIS_IS_FINE.Cliente(cliente_codigo),
-	CONSTRAINT FK_factura_sucursal FOREIGN KEY (factura_sucursal) REFERENCES THIS_IS_FINE.Sucursal(sucursal_id)
+	/*CONSTRAINT FK_factura_cliente FOREIGN KEY (factura_cliente) REFERENCES THIS_IS_FINE.Cliente(cliente_codigo),
+	CONSTRAINT FK_factura_sucursal FOREIGN KEY (factura_sucursal) REFERENCES THIS_IS_FINE.Sucursal(sucursal_id) */
 )
 
 create table THIS_IS_FINE.detalle_factura (
@@ -136,9 +137,7 @@ create table THIS_IS_FINE.detalle_factura (
 	fact_det_cantidad decimal(18,0),
 	fact_det_subtotal decimal(18,2)
 	
-	constraint PK_dettaleFactura primary key (fact_det_factura, fact_det_pedido, fact_det_id),
-	constraint FK_detalleFactura_Factura foreign key (fact_det_factura) references THIS_IS_FINE.Factura(factura_numero),
-	constraint FK_detalleFactura_Pedido foreign key (fact_det_pedido) references THIS_IS_FINE.Pedido(pedido_numero)
+	constraint PK_dettaleFactura primary key (fact_det_factura, fact_det_pedido, fact_det_id)
 )
 
 create table THIS_IS_FINE.Envio(
@@ -314,17 +313,15 @@ BEGIN
      INSERT INTO THIS_IS_FINE.sillon_medida (
 	     sillon_medida_alto,
 	     sillon_medida_ancho,
-	     sillon_medida_profundidad,
-		 sillon_medida_precio
+	     sillon_medida_profundidad
 	 )
 	 SELECT DISTINCT
 	     sillon_medida_alto,
 	     sillon_medida_ancho,
-	     sillon_medida_profundidad,
-		 sillon_medida_precio
+	     sillon_medida_profundidad
      FROM gd_esquema.Maestra
 	 WHERE Sillon_Medida_Alto IS NOT NULL AND Sillon_Medida_Ancho IS NOT NULL 
-	 AND Sillon_Medida_Profundidad IS NOT NULL AND Sillon_Medida_Precio IS NOT NULL  
+	 AND Sillon_Medida_Profundidad IS NOT NULL  
 END;
 GO
 
@@ -343,13 +340,12 @@ BEGIN
 	 SELECT DISTINCT
 	     material_tipo 
      FROM gd_esquema.Maestra
+	 WHERE material_Tipo IS NOT NULL
 END; /*Despu�s vemos si esto lo dejamos as�*/
 GO
+--DBCC CHECKIDENT ('THIS_IS_FINE.tipo_material', RESEED, 0);
 
-exec THIS_IS_FINE.migrar_tipo_material
 
-select * from THIS_IS_FINE.tipo_material
-GO
 
 /*Insertar provincia de la tabla maestra a tabla provincia*/
 
@@ -398,15 +394,8 @@ GO
 
 exec THIS_IS_FINE.migrar_localidades_proveedor
 
-select distinct localidad_detalle  from THIS_IS_FINE.Localidad
+--DBCC CHECKIDENT ('THIS_IS_FINE.Localidad', RESEED, 0);
 
-delete from THIS_IS_FINE.Localidad
-
-DBCC CHECKIDENT ('THIS_IS_FINE.Localidad', RESEED, 0);
-
-select * from THIS_IS_FINE.Localidad
-join THIS_IS_FINE.Provincia on localidad_provincia = provincia_codigo
-GO
 /*insertando localidades de sucursal*/
 
 CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_localidades_sucursal
@@ -431,10 +420,6 @@ END;
 GO
 /*insertando localidades de cliente*/
 
-exec THIS_IS_FINE.migrar_localidades_sucursal
-select * from THIS_IS_FINE.Localidad
-GO
-
 CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_localidades_cliente
 AS
 BEGIN
@@ -456,8 +441,13 @@ BEGIN
 END;
 GO
 
-exec THIS_IS_FINE.migrar_localidades_cliente
-GO
+CREATE PROCEDURE THIS_IS_FINE.migrar_localidades
+AS
+BEGIN
+	EXEC THIS_IS_FINE.migrar_localidades_cliente;
+	EXEC THIS_IS_FINE.migrar_localidades_proveedor;
+	EXEC THIS_IS_FINE.migrar_localidades_sucursal;
+END
 
 /* Migracion de Cliente */
 
@@ -474,12 +464,9 @@ BEGIN
 END 
 GO
 
-exec THIS_IS_FINE.migrar_cliente
-GO
-
 /* Migracion de Sucursal*/
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_sucursal
+ALTER PROCEDURE THIS_IS_FINE.migrar_sucursal
 AS
 BEGIN
 
@@ -501,10 +488,21 @@ BEGIN
      FROM gd_esquema.Maestra maestra
 	 LEFT JOIN THIS_IS_FINE.Localidad Loc /*Creo que va con left porque no llamás por PK, y supongo que hay que traer las sucursales aunque no tengan loc*/
 	 ON Loc.localidad_detalle = maestra.Sucursal_Localidad
+	 join THIS_IS_FINE.Provincia on Loc.localidad_provincia = provincia_codigo and Sucursal_Provincia = provincia_detalle
 	 WHERE sucursal_NroSucursal IS NOT NULL
 	/*Cómo hacíamos entonces con los NULL?*/
 END;
 GO
+exec THIS_IS_FINE.migrar_sucursal
+select * from  THIS_IS_FINE.Sucursal
+DBCC CHECKIDENT ('THIS_IS_FINE.Sucursal', RESEED, 0);
+
+
+select distinct Sucursal_NroSucursal, Sucursal_Localidad, Sucursal_Provincia
+from gd_esquema.Maestra
+where Sucursal_NroSucursal is not null and Sucursal_Localidad is not null and Sucursal_Provincia is not null
+
+
 
 CREATE PROCEDURE THIS_IS_FINE.migrar_pedido
 AS
@@ -936,6 +934,7 @@ BEGIN
 END;
 GO
 
+select * from THIS_IS_FINE.Proveedor
 
 
 
