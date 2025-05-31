@@ -261,8 +261,8 @@ END;
 GO
 
 exec THIS_IS_FINE.migrar_sillon_modelo -- QUEDA TODA LA TABLA EN NULLS Y ESTA BIEN
+select * from THIS_IS_FINE.sillon_modelo
 
-select * from gd_esquema.Maestra
 /*Insertar Medidas Sill�n de la tabla maestra a la tabla medida_sillon*/
 
 CREATE PROCEDURE THIS_IS_FINE.migrar_sillon_medida
@@ -274,8 +274,7 @@ BEGIN
      INSERT INTO THIS_IS_FINE.sillon_medida (
 	     sillon_medida_alto,
 	     sillon_medida_ancho,
-	     sillon_medida_profundidad,
-	     sillon_medida_precio
+	     sillon_medida_profundidad
 	 )
 	 SELECT DISTINCT
 	     sillon_medida_alto,
@@ -284,6 +283,8 @@ BEGIN
      FROM gd_esquema.Maestra
 END;
 GO
+
+exec THIS_IS_FINE.migrar_sillon_medida
 
 /*Insertar Tipo Material de la tabla maestra a la tabla tipo_material*/
 
@@ -299,6 +300,8 @@ BEGIN
      FROM gd_esquema.Maestra
 END; /*Despu�s vemos si esto lo dejamos as�*/
 GO
+
+exec THIS_IS_FINE.migrar_tipo_material
 
 select * from THIS_IS_FINE.tipo_material
 
@@ -320,81 +323,108 @@ WHERE provincia IS NOT NULL;
 END;
 GO
 
-/*insertando localidades de proveedor*/
+exec THIS_IS_FINE.migrar_provincia
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_localidades_proveedor
+select * from THIS_IS_FINE.Provincia
+
+/*insertando localidades de proveedor*/
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_localidades_proveedor
 AS
 BEGIN
-INSERT INTO THIS_IS_FINE.Localidad (localidad_detalle, localidad_provincia)
-SELECT DISTINCT
-    maestra.Proveedor_Localidad,
-    Prov.provincia_codigo
-FROM gd_esquema.Maestra maestra
-JOIN THIS_IS_FINE.Provincia Prov 
-  ON Prov.provincia_detalle = maestra.Proveedor_Provincia
-WHERE maestra.Proveedor_Provincia IS NOT NULL
-  AND maestra.Proveedor_Localidad IS NOT NULL
-  AND NOT EXISTS (
-      SELECT 1
-      FROM THIS_IS_FINE.Localidad Loc
-      WHERE Loc.localidad_detalle = maestra.Proveedor_Localidad and Loc.localidad_provincia = Prov.provincia_codigo
-  	)
+    INSERT INTO THIS_IS_FINE.Localidad (localidad_detalle, localidad_provincia)
+    SELECT DISTINCT
+        RTRIM(LTRIM(maestra.Proveedor_Localidad)),
+        Prov.provincia_codigo
+    FROM gd_esquema.Maestra maestra
+    JOIN THIS_IS_FINE.Provincia Prov 
+      ON RTRIM(LTRIM(Prov.provincia_detalle)) = RTRIM(LTRIM(maestra.Proveedor_Provincia))
+    WHERE maestra.Proveedor_Provincia IS NOT NULL
+      AND maestra.Proveedor_Localidad IS NOT NULL
+      AND NOT EXISTS (
+          SELECT 1
+          FROM THIS_IS_FINE.Localidad Loc
+          WHERE Loc.localidad_detalle = RTRIM(LTRIM(maestra.Proveedor_Localidad))
+            AND Loc.localidad_provincia = Prov.provincia_codigo
+      )
 END;
 GO
+
+exec THIS_IS_FINE.migrar_localidades_proveedor
+
+select distinct localidad_detalle  from THIS_IS_FINE.Localidad
+
+delete from THIS_IS_FINE.Localidad
+
+DBCC CHECKIDENT ('THIS_IS_FINE.Localidad', RESEED, 0);
+
+select * from THIS_IS_FINE.Localidad
+join THIS_IS_FINE.Provincia on localidad_provincia = provincia_codigo
 /*insertando localidades de sucursal*/
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_localidades_sucursal
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_localidades_sucursal
 AS
 BEGIN
-INSERT INTO THIS_IS_FINE.Localidad (localidad_detalle, localidad_provincia)
-SELECT DISTINCT
-    maestra.Sucursal_Localidad,
-    Prov.provincia_codigo
-FROM gd_esquema.Maestra maestra
-JOIN THIS_IS_FINE.Provincia Prov
-  ON Prov.provincia_detalle = maestra.Sucursal_Provincia
-WHERE maestra.Sucursal_Provincia IS NOT NULL
-  AND maestra.Sucursal_Localidad IS NOT NULL
-  AND NOT EXISTS (
-      SELECT 1
-      FROM THIS_IS_FINE.Localidad Loc
-      WHERE Loc.localidad_detalle = maestra.Sucursal_Localidad and Loc.localidad_provincia = Prov.provincia_codigo
-  	)
+    INSERT INTO THIS_IS_FINE.Localidad (localidad_detalle, localidad_provincia)
+    SELECT DISTINCT
+        RTRIM(LTRIM(maestra.Sucursal_Localidad)),
+        Prov.provincia_codigo
+    FROM gd_esquema.Maestra maestra
+    JOIN THIS_IS_FINE.Provincia Prov
+      ON RTRIM(LTRIM(Prov.provincia_detalle)) = RTRIM(LTRIM(maestra.Sucursal_Provincia))
+    WHERE maestra.Sucursal_Provincia IS NOT NULL
+      AND maestra.Sucursal_Localidad IS NOT NULL
+      AND NOT EXISTS (
+          SELECT 1
+          FROM THIS_IS_FINE.Localidad Loc
+          WHERE Loc.localidad_detalle = RTRIM(LTRIM(maestra.Sucursal_Localidad))
+            AND Loc.localidad_provincia = Prov.provincia_codigo
+      )
 END;
 GO
 /*insertando localidades de cliente*/
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_localidades_cliente
+exec THIS_IS_FINE.migrar_localidades_sucursal
+select * from THIS_IS_FINE.Localidad
+
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_localidades_cliente
 AS
 BEGIN
-INSERT INTO THIS_IS_FINE.Localidad (localidad_detalle, localidad_provincia)
-SELECT DISTINCT
-    maestra.Cliente_Localidad,
-    Prov.provincia_codigo
-FROM gd_esquema.Maestra maestra
-JOIN THIS_IS_FINE.Provincia Prov    
-  ON Prov.provincia_detalle = maestra.Cliente_Provincia
-WHERE maestra.Cliente_Provincia IS NOT NULL
-  AND maestra.Cliente_Localidad IS NOT NULL
-  AND NOT EXISTS (
-      SELECT 1
-      FROM THIS_IS_FINE.Localidad Loc
-      WHERE Loc.localidad_detalle = maestra.Cliente_Localidad and Loc.localidad_provincia = Prov.provincia_codigo
-	)
+    INSERT INTO THIS_IS_FINE.Localidad (localidad_detalle, localidad_provincia)
+    SELECT DISTINCT
+        RTRIM(LTRIM(maestra.Cliente_Localidad)),
+        Prov.provincia_codigo
+    FROM gd_esquema.Maestra maestra
+    JOIN THIS_IS_FINE.Provincia Prov    
+      ON RTRIM(LTRIM(Prov.provincia_detalle)) = RTRIM(LTRIM(maestra.Cliente_Provincia))
+    WHERE maestra.Cliente_Provincia IS NOT NULL
+      AND maestra.Cliente_Localidad IS NOT NULL
+      AND NOT EXISTS (
+          SELECT 1
+          FROM THIS_IS_FINE.Localidad Loc
+          WHERE Loc.localidad_detalle = RTRIM(LTRIM(maestra.Cliente_Localidad))
+            AND Loc.localidad_provincia = Prov.provincia_codigo
+      )
 END;
 GO
 
+exec THIS_IS_FINE.migrar_localidades_cliente
+
 /* Migracion de Cliente */
 
-create procedure migrar_cliente
+create or alter procedure THIS_IS_FINE.migrar_cliente
 as 
 BEGIN 
-	insert into THIS_IS_FINE.Cliente (cliente_dni, cliente_nombre, cliente_apellido, cliente_fecha_nacimiento, cliente_mail, cliente_telefono, cliente_direccion)
-	select distinct Cliente_Dni, Cliente_Nombre, Cliente_Apellido, Cliente_FechaNacimiento, Cliente_Mail, Cliente_Telefono, Cliente_Direccion
-	from gd_esquema.Maestra
-	where Cliente_Dni is not null and Cliente_Nombre is not null and Cliente_Apellido is not null and Cliente_FechaNacimiento is not null and Cliente_Telefono is not null and Cliente_Direccion is not null 
+	insert into THIS_IS_FINE.Cliente (cliente_dni, cliente_nombre, cliente_apellido, cliente_fecha_nacimiento, cliente_mail, cliente_telefono, cliente_direccion, cliente_localidad)
+	select distinct Cliente_Dni, Cliente_Nombre, Cliente_Apellido, Cliente_FechaNacimiento, Cliente_Mail, Cliente_Telefono, Cliente_Direccion, localidad_codigo
+	from gd_esquema.Maestra maestra
+	join THIS_IS_FINE.Localidad on maestra.Cliente_Localidad = localidad_detalle
+	join THIS_IS_FINE.Provincia on maestra.Cliente_Provincia = provincia_detalle
+	where Cliente_Dni is not null and Cliente_Nombre is not null and Cliente_Apellido is not null and Cliente_FechaNacimiento is not null and Cliente_Telefono is not null and Cliente_Direccion is not null and Cliente_Localidad is not null
+	and localidad_provincia = provincia_codigo
 END 
 GO
+
+exec THIS_IS_FINE.migrar_cliente
 
 /* Migracion de Sucursal*/
 
