@@ -101,14 +101,14 @@ FOREIGN KEY (sucursal_localidad) REFERENCES THIS_IS_FINE.Localidad(localidad_cod
 create table THIS_IS_FINE.Pedido (
 	pedido_numero decimal(18,0),
 	pedido_fecha datetime2(6),
-	pedido_sucursal bigint,
+	pedido_sucursal int,
 	--FK a Sucursal 
 	pedido_estado nvarchar(255),
 	--FK a cliente
 	pedido_cliente int,
 	pedido_total decimal(18,2),
 	CONSTRAINT PK_Pedido PRIMARY KEY (pedido_numero),
-	CONSTRAINT PK_Pedido_sucursal foreign key(pedido_sucursal) references THIS_IS_FINE.Sucursal(sucursal_Nrosucursal),
+	CONSTRAINT PK_Pedido_sucursal foreign key(pedido_sucursal) references THIS_IS_FINE.Sucursal(sucursal_id),
 	CONSTRAINT FK_Pedido_cliente FOREIGN KEY (pedido_cliente) REFERENCES THIS_IS_FINE.Cliente(cliente_codigo)
 )
 
@@ -118,11 +118,11 @@ create table THIS_IS_FINE.Factura (
 	-- FK a Cliente
 	factura_cliente int,
 	--Fk a Sucursal
-	factura_sucursal bigint,
+	factura_sucursal int,
 	factura_total decimal(38,2),
 	CONSTRAINT PK_Factura PRIMARY KEY (factura_numero),
 	CONSTRAINT FK_factura_cliente FOREIGN KEY (factura_cliente) REFERENCES THIS_IS_FINE.Cliente(cliente_codigo),
-	CONSTRAINT FK_factura_sucursal FOREIGN KEY (factura_sucursal) REFERENCES THIS_IS_FINE.Sucursal(sucursal_NroSucursal)
+	CONSTRAINT FK_factura_sucursal FOREIGN KEY (factura_sucursal) REFERENCES THIS_IS_FINE.Sucursal(sucursal_id)
 )
 
 create table THIS_IS_FINE.detalle_factura (
@@ -177,7 +177,7 @@ create table THIS_IS_FINE.sillon_modelo (
 	sillon_modelo_descripcion nvarchar(255),
 	sillon_modelo_precio decimal(18,2),
 	sillon_modelo nvarchar(255),
-	CONSTRAINT PK_ModeloSillon PRIMARY KEY (sillon_modelo_codigo)
+	CONSTRAINT PK_Modelo_Sillon PRIMARY KEY (sillon_modelo_codigo)
 )
 
 create table THIS_IS_FINE.sillon_medida (
@@ -205,6 +205,7 @@ create table THIS_IS_FINE.detalle_compra (
 	detalle_compra_material int, -- FK a Material
 	detalle_compra_precio decimal(18,2),
 	detalle_compra_cantidad decimal(18,0),
+	detalle_compra_precio_unitario decimal(18,2),
 	detalle_compra_subtotal decimal(18,0),
 	CONSTRAINT PK_DetalleCompra PRIMARY KEY (detalle_compra_numero, detalle_compra_material)
 )
@@ -274,13 +275,13 @@ BEGIN
      INSERT INTO THIS_IS_FINE.sillon_modelo (
 	      sillon_modelo_codigo, 
 	      sillon_modelo_descripcion,
-		  sillon_precio,
+		  sillon_modelo_precio,
 		  sillon_modelo
      )
 	 SELECT DISTINCT 
 	      sillon_modelo_codigo, 
 		  sillon_modelo_descripcion,
-		  sillon_precio,
+		  sillon_modelo_precio,
 		  sillon_modelo
      FROM gd_esquema.Maestra
 	 WHERE sillon_modelo_codigo IS NOT NULL
@@ -291,7 +292,7 @@ exec THIS_IS_FINE.migrar_sillon_modelo -- QUEDA TODA LA TABLA EN NULLS Y ESTA BI
 select * from THIS_IS_FINE.sillon_modelo
 
 /*Insertar Medidas Sill�n de la tabla maestra a la tabla medida_sillon*/
-
+GO
 CREATE PROCEDURE THIS_IS_FINE.migrar_sillon_medida
 AS
 BEGIN
@@ -316,6 +317,7 @@ END;
 GO
 
 exec THIS_IS_FINE.migrar_sillon_medida
+GO
 
 /*Insertar Tipo Material de la tabla maestra a la tabla tipo_material*/
 
@@ -335,6 +337,7 @@ GO
 exec THIS_IS_FINE.migrar_tipo_material
 
 select * from THIS_IS_FINE.tipo_material
+GO
 
 /*Insertar provincia de la tabla maestra a tabla provincia*/
 
@@ -357,6 +360,7 @@ GO
 exec THIS_IS_FINE.migrar_provincia
 
 select * from THIS_IS_FINE.Provincia
+GO
 
 /*insertando localidades de proveedor*/
 CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_localidades_proveedor
@@ -390,6 +394,7 @@ DBCC CHECKIDENT ('THIS_IS_FINE.Localidad', RESEED, 0);
 
 select * from THIS_IS_FINE.Localidad
 join THIS_IS_FINE.Provincia on localidad_provincia = provincia_codigo
+GO
 /*insertando localidades de sucursal*/
 
 CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_localidades_sucursal
@@ -416,6 +421,7 @@ GO
 
 exec THIS_IS_FINE.migrar_localidades_sucursal
 select * from THIS_IS_FINE.Localidad
+GO
 
 CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_localidades_cliente
 AS
@@ -439,6 +445,7 @@ END;
 GO
 
 exec THIS_IS_FINE.migrar_localidades_cliente
+GO
 
 /* Migracion de Cliente */
 
@@ -456,6 +463,7 @@ END
 GO
 
 exec THIS_IS_FINE.migrar_cliente
+GO
 
 /* Migracion de Sucursal*/
 
@@ -662,8 +670,8 @@ BEGIN
 
      INSERT INTO THIS_IS_FINE.Sillon (
 	     sillon_codigo,
-	     sillon_modelo,
-	     sillon_medida
+	     sillon_id_modelo,
+	     sillon_id_medida
      )
 	 SELECT DISTINCT 
 	     sillon_codigo,
@@ -782,7 +790,7 @@ BEGIN
      )
 	 SELECT DISTINCT 
 	     proveedor_cuit,
-	     proveedor_razon_social,
+	     proveedor_razonSocial,
 	     proveedor_direccion,
 	     proveedor_telefono,
 	     proveedor_mail,
@@ -840,23 +848,23 @@ BEGIN
      INSERT INTO THIS_IS_FINE.detalle_compra (
 	     detalle_compra_numero,
 	     detalle_compra_material,
-	     compra_precio_unitario,
-	     compra_cantidad,
-	     compra_subtotal
+	     detalle_compra_precio_unitario,
+	     detalle_compra_cantidad,
+	     detalle_compra_subtotal
      )
 	 SELECT DISTINCT 
 	     Comp.compra_numero,
 		 Mat.id_material,
-		 compra_precio_unitario,
-	     compra_cantidad,
-	     compra_subtotal
+		 detalle_compra_precio,
+	     detalle_compra_cantidad,
+	     detalle_compra_subtotal
      FROM gd_esquema.Maestra maestra
 	 JOIN THIS_IS_FINE.Compra Comp
 	 ON maestra.Compra_Numero = Comp.compra_numero
 	 JOIN THIS_IS_FINE.Material Mat
 	 ON maestra.Material_Nombre+maestra.Material_Descripcion+maestra.Material_Precio =
 	 Mat.material_nombre+Mat.material_descripcion+Mat.material_precio
-	 WHERE material_nombre IS NOT NULL /*NO SE SI DEFINIR ALGUNO MÁS O YA ALCANZA*/
+	 WHERE Mat.material_nombre IS NOT NULL /*NO SE SI DEFINIR ALGUNO MÁS O YA ALCANZA*/
 END;
 GO
 
