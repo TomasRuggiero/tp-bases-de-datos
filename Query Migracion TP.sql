@@ -26,6 +26,7 @@ DROP TABLE IF EXISTS THIS_IS_FINE.Relleno;
 DROP TABLE IF EXISTS THIS_IS_FINE.Compra;
 DROP TABLE IF EXISTS THIS_IS_FINE.Pedido;
 DROP TABLE IF EXISTS THIS_IS_FINE.Factura;
+DROP TABLE IF EXISTS THIS_IS_FINE.Envío;
 
 -- Tablas relativamente independientes
 DROP TABLE IF EXISTS THIS_IS_FINE.Sillon;
@@ -140,6 +141,16 @@ create table THIS_IS_FINE.detalle_factura (
 	constraint FK_detalleFactura_Pedido foreign key (fact_det_pedido) references THIS_IS_FINE.Pedido(pedido_numero)
 )
 
+create table THIS_IS_FINE.Envio(
+    envio_numero decimal(18,0),
+	envio_fecha_programada datetime2(6),
+	envio_fecha datetime2(6),
+	envio_importe_traslado decimal(18,2),
+	envio_importe_subida decimal(18,2),
+	envio_total decimal(18,2),
+	envio_factura_numero bigint, --FK factura_numero
+	CONSTRAINT PK_Envio PRIMARY KEY (envio_numero)
+)
 
 create table THIS_IS_FINE.Sillon (
 	sillon_codigo bigint,
@@ -166,10 +177,11 @@ CREATE TABLE THIS_IS_FINE.detalle_pedido (
 --GO
 
 create table THIS_IS_FINE.pedido_cancelacion (
-	cancel_pedido_codigo int,
-	cancel_pedido_fecha datetime2(6),
-	cancel_id_pedido decimal(18,0),--FK a pedido
-	CONSTRAINT PK_Pedido_cancelacion PRIMARY KEY (cancel_pedido_codigo)
+	pedido_cancelacion_codigo int IDENTITY(1,1),
+	pedido_cancelacion_fecha datetime2(6),
+	pedido_cancelacion_motivo varchar(255),
+	pedido_codigo decimal(18,0),--FK a pedido
+	CONSTRAINT PK_Pedido_cancelacion PRIMARY KEY (pedido_cancelacion_codigo)
 )
 
 create table THIS_IS_FINE.sillon_modelo (
@@ -865,6 +877,62 @@ BEGIN
 	 ON maestra.Material_Nombre+maestra.Material_Descripcion+maestra.Material_Precio =
 	 Mat.material_nombre+Mat.material_descripcion+Mat.material_precio
 	 WHERE Mat.material_nombre IS NOT NULL /*NO SE SI DEFINIR ALGUNO MÁS O YA ALCANZA*/
+END;
+GO
+
+/*Migración de Envío*/
+
+CREATE PROCEDURE THIS_IS_FINE.migrar_envio
+AS
+BEGIN
+
+     SET NOCOUNT ON;
+
+     INSERT INTO THIS_IS_FINE.Envio (
+	     envio_numero,
+	     envio_fecha_programada,
+	     envio_fecha,
+	     envio_importe_traslado,
+	     envio_importe_subida,
+	     envio_total,
+	     envio_factura_numero
+     )
+	 SELECT DISTINCT 
+	     envio_numero,
+	     envio_fecha_programada,
+	     envio_fecha,
+	     envio_importe_traslado,
+	     envio_importe_subida,
+	     envio_total,
+		 Fac.factura_numero
+     FROM gd_esquema.Maestra maestra
+	 JOIN THIS_IS_FINE.Factura Fac
+	 ON maestra.Factura_Numero = Fac.factura_numero
+	 WHERE envio_numero IS NOT NULL /*NO SE SI DEFINIR ALGUNO MÁS O YA ALCANZA*/
+END;
+GO
+
+/*Migración de Envío*/
+
+CREATE PROCEDURE THIS_IS_FINE.migrar_pedido_de_cancelacion
+AS
+BEGIN
+
+     SET NOCOUNT ON;
+
+     INSERT INTO THIS_IS_FINE.pedido_de_cancelacion (
+	     pedido_cancelacion_fecha,
+	     pedido_cancelacion_motivo,
+	     pedido_codigo
+     )
+	 SELECT DISTINCT 
+	     pedido_cancelacion_fecha,
+	     pedido_cancelacion_motivo,
+		 Ped.pedido_numero
+     FROM gd_esquema.Maestra maestra
+	 JOIN THIS_IS_FINE.Pedido Ped
+	 ON maestra.Pedido_Numero = Ped.pedido_numero
+	 WHERE pedido_cancelacion_fecha IS NOT NULL AND pedido_cancelacion_motivo IS NOT NULL
 END;
 GO
 
