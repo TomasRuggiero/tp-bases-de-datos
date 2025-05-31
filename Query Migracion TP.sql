@@ -3,11 +3,11 @@
 use GD1C2025;
 GO
 
-/*if not exists(SELECT * from sys.schemas where name='THIS_IS_FINE')
+if not exists(SELECT * from sys.schemas where name='THIS_IS_FINE')
 BEGIN
 EXEC(' create schema THIS_IS_FINE;')
-END
-*/
+END;
+GO
 
 drop table if exists THIS_IS_FINE.Provincia;
 
@@ -88,12 +88,13 @@ create table THIS_IS_FINE.Factura (
 )
 
 create table THIS_IS_FINE.Sucursal (
+    sucursal_id int IDENTITY(1,1),
 	sucursal_NroSucursal bigint, 
 	sucursal_localidad INTEGER, --FK a localidad
 	sucursal_direccion nvarchar(255),
 	sucursal_telefono nvarchar(255),
 	sucursal_mail nvarchar(255),
-	CONSTRAINT PK_Sucursal PRIMARY KEY (sucursal_Nrosucursal)
+	CONSTRAINT PK_Sucursal PRIMARY KEY (sucursal_id)
 )
 
 create table THIS_IS_FINE.detalle_factura (
@@ -249,11 +250,13 @@ BEGIN
      INSERT INTO THIS_IS_FINE.sillon_modelo (
 	      sillon_modelo_codigo, 
 	      sillon_modelo_descripcion,
+		  sillon_precio,
 		  sillon_modelo
      )
 	 SELECT DISTINCT 
 	      sillon_modelo_codigo, 
 		  sillon_modelo_descripcion,
+		  sillon_precio,
 		  sillon_modelo
      FROM gd_esquema.Maestra
 	 WHERE sillon_modelo_codigo IS NOT NULL
@@ -274,13 +277,17 @@ BEGIN
      INSERT INTO THIS_IS_FINE.sillon_medida (
 	     sillon_medida_alto,
 	     sillon_medida_ancho,
-	     sillon_medida_profundidad
+	     sillon_medida_profundidad,
+		 sillon_medida_precio
 	 )
 	 SELECT DISTINCT
 	     sillon_medida_alto,
 	     sillon_medida_ancho,
-	     sillon_medida_profundidad
+	     sillon_medida_profundidad,
+		 sillon_medida_precio
      FROM gd_esquema.Maestra
+	 WHERE Sillon_Medida_Alto IS NOT NULL AND Sillon_Medida_Ancho IS NOT NULL 
+	 AND Sillon_Medida_Profundidad IS NOT NULL AND Sillon_Medida_Precio IS NOT NULL  
 END;
 GO
 
