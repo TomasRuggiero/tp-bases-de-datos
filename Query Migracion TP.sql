@@ -3,14 +3,12 @@
 use GD1C2025;
 GO
 
-/*if not exists(SELECT * from sys.schemas where name='THIS_IS_FINE')
+
+IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'THIS_IS_FINE')
 BEGIN
-EXEC*/(/*'*/ create schema THIS_IS_FINE;/*'*/)
---END
-
-drop table if exists THIS_IS_FINE.Provincia;
-
-drop table if exists THIS_IS_FINE.Localidad;
+    EXEC('CREATE SCHEMA THIS_IS_FINE');
+END;
+GO
 
 /* DROPEO las tablas para crear correctamente las PKs */
 
@@ -50,7 +48,8 @@ create table THIS_IS_FINE.Cliente (
 	cliente_fecha_nacimiento datetime2(6),
 	cliente_mail NVARCHAR(100),
 	cliente_telefono NVARCHAR(100),
-	cliente_direccion NVARCHAR(100)
+	cliente_direccion NVARCHAR(100),
+	cliente_localidad integer
 	-- Agregar FK a Localidad
 	CONSTRAINT PK_Cliente PRIMARY KEY (cliente_codigo)
 )
@@ -68,12 +67,10 @@ create table THIS_IS_FINE.Localidad (
 	-- Agregar FK a Provincia
 	CONSTRAINT PK_Localidad PRIMARY KEY (localidad_codigo)
 )
-
-/*
 ALTER TABLE THIS_IS_FINE.Localidad
 ADD CONSTRAINT FK_localidad_provincia FOREIGN KEY (localidad_provincia)
 REFERENCES THIS_IS_FINE.Provincia(provincia_codigo);
-*/
+
 
 create table THIS_IS_FINE.Proveedor (
 	proveedor_codigo INTEGER IDENTITY(1,1),
@@ -85,16 +82,6 @@ create table THIS_IS_FINE.Proveedor (
 	-- Agregar FK a Localidad
 	CONSTRAINT PK_Proveedor PRIMARY KEY (proveedor_codigo)
 )
-
-create table THIS_IS_FINE.Factura (
-	factura_numero bigint,
-	factura_fecha datetime2(6),
-	-- FK a Cliente
-	factura_total decimal(38,2),
-	--Fk a Sucursal
-	CONSTRAINT PK_Factura PRIMARY KEY (factura_numero)
-)
-
 create table THIS_IS_FINE.Sucursal (
 	sucursal_NroSucursal bigint, 
 	sucursal_localidad int,
@@ -104,30 +91,57 @@ create table THIS_IS_FINE.Sucursal (
 	CONSTRAINT PK_Sucursal PRIMARY KEY (sucursal_Nrosucursal)
 )
 
+
 /*Creación de FK Sucursal_localidad*/
 
 ALTER TABLE THIS_IS_FINE.Sucursal
 ADD CONSTRAINT FK_Sucursal_Localidad
 FOREIGN KEY (sucursal_localidad) REFERENCES THIS_IS_FINE.Localidad(localidad_codigo);
 
-create table THIS_IS_FINE.detalle_factura (
-	--Fk a Factura
-	--FK a pedido
-	fact_det_precio decimal(18,2),
-	fact_det_cantidad decimal(18,0),
-	fact_det_subtotal decimal(18,2)
-	--CONSTRAINT PK_detalleFactura PRIMARY KEY (fact_det_factura, fact_det_pedido)
-)
-
 create table THIS_IS_FINE.Pedido (
 	pedido_numero decimal(18,0),
 	pedido_fecha datetime2(6),
+	pedido_sucursal bigint,
 	--FK a Sucursal 
 	pedido_estado nvarchar(255),
 	--FK a cliente
+	pedido_cliente int,
 	pedido_total decimal(18,2),
-	CONSTRAINT PK_Pedido PRIMARY KEY (pedido_numero)
+	CONSTRAINT PK_Pedido PRIMARY KEY (pedido_numero),
+	CONSTRAINT PK_Pedido_sucursal foreign key(pedido_sucursal) references THIS_IS_FINE.Sucursal(sucursal_Nrosucursal),
+	CONSTRAINT FK_Pedido_cliente FOREIGN KEY (pedido_cliente) REFERENCES THIS_IS_FINE.Cliente(cliente_codigo)
 )
+
+create table THIS_IS_FINE.Factura (
+	factura_numero bigint,
+	factura_fecha datetime2(6),
+	-- FK a Cliente
+	factura_cliente int,
+	--Fk a Sucursal
+	factura_sucursal bigint,
+	factura_total decimal(38,2),
+	CONSTRAINT PK_Factura PRIMARY KEY (factura_numero),
+	CONSTRAINT FK_factura_cliente FOREIGN KEY (factura_cliente) REFERENCES THIS_IS_FINE.Cliente(cliente_codigo),
+	CONSTRAINT FK_factura_sucursal FOREIGN KEY (factura_sucursal) REFERENCES THIS_IS_FINE.Sucursal(sucursal_NroSucursal)
+)
+
+create table THIS_IS_FINE.detalle_factura (
+	fact_det_id int,
+	--Fk a Factura
+	fact_det_factura bigint,
+	--FK a pedido
+	fact_det_pedido decimal(18,0),
+	fact_det_precio decimal(18,2),
+	fact_det_cantidad decimal(18,0),
+	fact_det_subtotal decimal(18,2)
+	
+	constraint PK_dettaleFactura primary key (fact_det_factura, fact_det_pedido, fact_det_id),
+	constraint FK_detalleFactura_Factura foreign key (fact_det_factura) references THIS_IS_FINE.Factura(factura_numero),
+	constraint FK_detalleFactura_Pedido foreign key (fact_det_pedido) references THIS_IS_FINE.Pedido(pedido_numero)
+)
+
+
+
 
 create table THIS_IS_FINE.detalle_pedido (
 	--FK a Pedido 
@@ -414,7 +428,7 @@ GO
 
 /* Migracion de Cliente */
 
-create procedure migrar_cliente
+create procedure THIS_IS_FINE.migrar_cliente
 as 
 BEGIN 
 	insert into THIS_IS_FINE.Cliente (cliente_dni, cliente_nombre, cliente_apellido, cliente_fecha_nacimiento, cliente_mail, cliente_telefono, cliente_direccion)
@@ -422,8 +436,7 @@ BEGIN
 	from gd_esquema.Maestra
 	where Cliente_Dni is not null and Cliente_Nombre is not null and Cliente_Apellido is not null and Cliente_FechaNacimiento is not null and Cliente_Telefono is not null and Cliente_Direccion is not null 
 END 
-
-exec migrar_cliente;	
+GO
 
 
 /* Migracion de Sucursal*/
@@ -453,6 +466,61 @@ BEGIN
 	 WHERE sucursal_NroSucursal IS NOT NULL
 	/*Cómo hacíamos entonces con los NULL?*/
 END;
+GO
+
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_pedido
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO THIS_IS_FINE.Pedido (
+        pedido_numero,
+        pedido_fecha,
+        pedido_sucursal,
+        pedido_cliente,
+        pedido_estado,
+        pedido_total
+    )
+    SELECT DISTINCT
+        ma.Pedido_Numero,
+        ma.Pedido_Fecha,
+        s.Sucursal_NroSucursal,
+        c.cliente_codigo,
+        ma.Pedido_Estado,
+        ma.Pedido_Total
+    FROM gd_esquema.Maestra AS ma
+    LEFT JOIN THIS_IS_FINE.Cliente  AS c 
+      ON c.cliente_dni = ma.Cliente_Dni
+    LEFT JOIN THIS_IS_FINE.Sucursal AS s 
+      ON s.sucursal_NroSucursal = ma.Sucursal_NroSucursal
+    WHERE ma.Pedido_Numero IS NOT NULL
+      AND ma.Sucursal_NroSucursal IS NOT NULL
+      AND s.sucursal_NroSucursal IS NOT NULL;
+END;
+GO
+
+CREATE PROCEDURE THIS_IS_FINE.migrar_detalle_pedido
+AS
+BEGIN
+
+	SET NOCOUNT ON;
+	
+	INSERT INTO THIS_IS_FINE.detalle_pedido (
+		pedido_numero,
+		sillon_codigo,
+		pedido_det_cantidad,
+		pedido_det_precio,
+		pedido_det_subtotal
+	)
+	SELECT DISTINCT
+		pedido_numero,
+		sillon_codigo,
+		detalle_pedido_cantidad,
+		detalle_pedido_precio,
+		detalle_pedido_subtotal
+		FROM gd_esquema.Maestra maestra
+		WHERE pedido_numero IS NOT NULL AND sillon_codigo IS NOT NULL
+END
 GO
 
 /*Migración de Material*/
@@ -613,3 +681,134 @@ BEGIN
 	 WHERE maestra.sillon_codigo IS NOT NULL and maestra.material_nombre IS NOT NULL
 END;
 GO
+
+CREATE PROCEDURE THIS_IS_FINE.migrar_Facturas
+AS
+BEGIN
+
+    -- Insertamos las facturas desde la tabla maestra, haciendo join con sucursal y cliente
+    INSERT INTO THIS_IS_FINE.Factura (
+        factura_numero,
+        factura_fecha,
+        factura_total,
+        factura_sucursal,
+        factura_cliente
+    )
+    SELECT DISTINCT
+        maestra.Factura_Numero,
+        maestra.Factura_Fecha,
+        maestra.Factura_Total,
+        sucursal.sucursal_NroSucursal,
+        cliente.cliente_codigo
+    FROM gd_esquema.Maestra maestra
+    JOIN THIS_IS_FINE.Sucursal sucursal
+        ON maestra.Sucursal_NroSucursal = sucursal.sucursal_NroSucursal
+    JOIN THIS_IS_FINE.Cliente cliente
+        ON maestra.Cliente_Dni = cliente.cliente_dni
+    WHERE maestra.Factura_Numero IS NOT NULL
+      AND NOT EXISTS (
+          SELECT 1 FROM THIS_IS_FINE.Factura factura
+          WHERE factura.factura_numero = maestra.Factura_Numero
+      )
+END;
+GO
+
+CREATE PROCEDURE THIS_IS_FINE.migrar_detalle_factura
+AS
+BEGIN
+    INSERT INTO THIS_IS_FINE.detalle_factura (
+        fact_det_factura,
+        fact_det_pedido,
+		fact_det_id,
+        fact_det_precio,
+        fact_det_cantidad,
+        fact_det_subtotal
+    )
+    SELECT
+        maestra.Factura_Numero,
+        maestra.Pedido_Numero,
+		ROW_NUMBER() OVER (
+            PARTITION BY maestra.Factura_Numero, maestra.Pedido_Numero
+            ORDER BY maestra.Detalle_Factura_Precio, maestra.Detalle_Factura_Cantidad
+        ) AS fact_det_id,
+        maestra.Detalle_Factura_Precio,
+        maestra.Detalle_Factura_Cantidad,
+        maestra.Detalle_Factura_SubTotal
+    FROM gd_esquema.Maestra maestra
+    JOIN THIS_IS_FINE.Factura factura ON factura.factura_numero = maestra.Factura_Numero
+    JOIN THIS_IS_FINE.Pedido pedido ON pedido.pedido_numero = maestra.Pedido_Numero;
+
+    
+END;
+GO
+
+CREATE PROCEDURE THIS_IS_FINE.migrar_detalle_pedido
+AS
+BEGIN
+
+	SET NOCOUNT ON;
+	
+	INSERT INTO THIS_IS_FINE.detalle_pedido (
+		pedido_numero,
+		sillon_codigo,
+		pedido_det_cantidad,
+		pedido_det_precio,
+		pedido_det_subtotal
+	)
+	SELECT DISTINCT
+		pedido_numero,
+		sillon_codigo,
+		detalle_pedido_cantidad,
+		detalle_pedido_precio,
+		detalle_pedido_subtotal
+		FROM gd_esquema.Maestra maestra
+		WHERE pedido_numero IS NOT NULL AND sillon_codigo IS NOT NULL
+END;
+GO
+
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_pedido
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO THIS_IS_FINE.Pedido (
+        pedido_numero,
+        pedido_fecha,
+        pedido_sucursal,
+        pedido_cliente,
+        pedido_estado,
+        pedido_total
+    )
+    SELECT DISTINCT
+        ma.Pedido_Numero,
+        ma.Pedido_Fecha,
+        s.Sucursal_NroSucursal,
+        c.cliente_codigo,
+        ma.Pedido_Estado,
+        ma.Pedido_Total
+    FROM gd_esquema.Maestra AS ma
+    LEFT JOIN THIS_IS_FINE.Cliente  AS c 
+      ON c.cliente_dni = ma.Cliente_Dni
+    LEFT JOIN THIS_IS_FINE.Sucursal AS s 
+      ON s.sucursal_NroSucursal = ma.Sucursal_NroSucursal
+    WHERE ma.Pedido_Numero IS NOT NULL
+      AND ma.Sucursal_NroSucursal IS NOT NULL
+      AND s.sucursal_NroSucursal IS NOT NULL;
+END;
+GO
+
+
+
+/*
+exec THIS_IS_FINE.migrar_provincia;
+exec THIS_IS_FINE.migrar_localidades_proveedor; 
+exec THIS_IS_FINE.migrar_localidades_sucursal; 
+exec THIS_IS_FINE.migrar_localidades_cliente;
+exec THIS_IS_FINE.migrar_cliente;
+exec THIS_IS_FINE.migrar_sucursal;
+exec THIS_IS_FINE.migrar_Facturas;
+exec THIS_IS_FINE.migrar_Pedido;
+exec THIS_IS_FINE.migrar_detalle_pedido;
+exec THIS_IS_FINE.migrar_detalle_factura;
+GO*/
+
