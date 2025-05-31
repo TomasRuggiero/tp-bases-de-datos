@@ -105,9 +105,11 @@ create table THIS_IS_FINE.Sucursal (
 
 /*Creación de FK Sucursal_localidad*/
 
-ALTER TABLE THIS_IS_FINE.Sucursal
-ADD CONSTRAINT FK_Sucursal_Localidad
-FOREIGN KEY (sucursal_localidad) REFERENCES THIS_IS_FINE.Localidad(localidad_codigo);
+/*ALTER TABLE THIS_IS_FINE.Sucursal
+ADD CONSTRAINT FK_Sucursal_Localidad														/* AGREGAR LAS FKs CUANDO SE HAYAN MIGRADO TODOS LOS DATOS PROPIOS DE CADA TABLA*/
+
+FOREIGN KEY (sucursal_localidad) REFERENCES THIS_IS_FINE.Localidad(localidad_codigo); */       
+
 
 create table THIS_IS_FINE.detalle_factura (
 	--Fk a Factura
@@ -126,8 +128,8 @@ create table THIS_IS_FINE.Pedido (
 	pedido_cliente INT,
 	pedido_total decimal(18,2),
 	CONSTRAINT PK_Pedido PRIMARY KEY (pedido_numero),
-	CONSTRAINT FK_pedido_sucursal FOREIGN KEY (pedido_sucursal) REFERENCES THIS_IS_FINE.Sucursal(sucursal_NroSucursal),
-	CONSTRAINT FK_pedido_cliente FOREIGN KEY (pedido_cliente) REFERENCES THIS_IS_FINE.Cliente(cliente_codigo)
+	--CONSTRAINT FK_pedido_sucursal FOREIGN KEY (pedido_sucursal) REFERENCES THIS_IS_FINE.Sucursal(sucursal_NroSucursal),
+	--CONSTRAINT FK_pedido_cliente FOREIGN KEY (pedido_cliente) REFERENCES THIS_IS_FINE.Cliente(cliente_codigo)
 )
 
 create table THIS_IS_FINE.Sillon (
@@ -151,7 +153,7 @@ CREATE TABLE THIS_IS_FINE.detalle_pedido (
     CONSTRAINT PK_detalle_pedido
       PRIMARY KEY (pedido_numero, sillon_codigo),
 
-    -- FK a Pedido
+   /* -- FK a Pedido
     CONSTRAINT FK_detalle_pedido_Pedido
       FOREIGN KEY (pedido_numero)
       REFERENCES THIS_IS_FINE.Pedido(pedido_numero),
@@ -159,7 +161,7 @@ CREATE TABLE THIS_IS_FINE.detalle_pedido (
     -- FK a Sillon
     CONSTRAINT FK_detalle_pedido_Sillon
       FOREIGN KEY (sillon_codigo)
-      REFERENCES THIS_IS_FINE.Sillon(sillon_codigo)
+      REFERENCES THIS_IS_FINE.Sillon(sillon_codigo) */
 );
 GO
 
