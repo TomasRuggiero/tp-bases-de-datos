@@ -193,7 +193,6 @@ create table THIS_IS_FINE.sillon_medida (
 create table THIS_IS_FINE.Compra (
 	compra_numero decimal(18,0),
 	compra_sucursal bigint,-- FK a Sucursal
-	compra_envio decimal(18,0),-- FK a Envio
 	compra_proveedor int,-- FK a Proveedor
 	compra_fecha datetime2(6),
 	compra_total decimal(18,2),
@@ -202,12 +201,12 @@ create table THIS_IS_FINE.Compra (
 
 
 create table THIS_IS_FINE.detalle_compra (
-	compra_numero decimal(18,0), -- FK a Compra
-	compra_material int, -- FK a Material
-	compra_precio_unitario decimal(18,2),
-	compra_cantidad decimal(18,0),
-	compra_subtotal decimal(18,0),
-	CONSTRAINT PK_DetalleCompra PRIMARY KEY (compra_numero, compra_material)
+	detalle_compra_numero decimal(18,0), -- FK a Compra
+	detalle_compra_material int, -- FK a Material
+	detalle_compra_precio decimal(18,2),
+	detalle_compra_cantidad decimal(18,0),
+	detalle_compra_subtotal decimal(18,0),
+	CONSTRAINT PK_DetalleCompra PRIMARY KEY (detalle_compra_numero, detalle_compra_material)
 )
 
 create table THIS_IS_FINE.sillon_material (
@@ -748,8 +747,8 @@ BEGIN
         fact_det_subtotal
     )
     SELECT
-        maestra.Factura_Numero,
-        maestra.Pedido_Numero,
+        factura.Factura_Numero,
+        pedido.Pedido_Numero,
 		ROW_NUMBER() OVER (
             PARTITION BY maestra.Factura_Numero, maestra.Pedido_Numero
             ORDER BY maestra.Detalle_Factura_Precio, maestra.Detalle_Factura_Cantidad
@@ -762,6 +761,102 @@ BEGIN
     JOIN THIS_IS_FINE.Pedido pedido ON pedido.pedido_numero = maestra.Pedido_Numero;
 
     
+END;
+GO
+
+/*Migración de Proveedor*/
+
+CREATE PROCEDURE THIS_IS_FINE.migrar_proveedor
+AS
+BEGIN
+
+     SET NOCOUNT ON;
+
+     INSERT INTO THIS_IS_FINE.Proveedor (
+	     proveedor_cuit,
+	     proveedor_razon_social,
+	     proveedor_direccion,
+	     proveedor_telefono,
+	     proveedor_mail,
+	     proveedor_localidad
+     )
+	 SELECT DISTINCT 
+	     proveedor_cuit,
+	     proveedor_razon_social,
+	     proveedor_direccion,
+	     proveedor_telefono,
+	     proveedor_mail,
+		 Loc.localidad_codigo
+     FROM gd_esquema.Maestra maestra
+	 LEFT JOIN THIS_IS_FINE.Localidad Loc
+	 ON maestra.Proveedor_Localidad = Loc.localidad_detalle
+END;
+GO
+
+/*Migración de Compra*/
+
+CREATE PROCEDURE THIS_IS_FINE.migrar_compra
+AS
+BEGIN
+
+     SET NOCOUNT ON;
+
+     INSERT INTO THIS_IS_FINE.Compra (
+	     compra_numero,
+	     compra_sucursal,
+     	 compra_proveedor,
+	     compra_fecha,
+	     compra_total 
+     )
+	 SELECT DISTINCT 
+	     compra_numero,
+		 Suc.sucursal_id,
+		 Prov.proveedor_codigo,
+		 compra_fecha,
+		 compra_total
+     FROM gd_esquema.Maestra maestra
+	 LEFT JOIN THIS_IS_FINE.Proveedor Prov
+	 ON maestra.Proveedor_Cuit = Prov.proveedor_cuit /*está todo en null así que no sé si trae bien las cosas o si los cuit se repiten*/
+	 LEFT JOIN THIS_IS_FINE.Sucursal Suc
+	 ON maestra.Sucursal_NroSucursal+maestra.Sucursal_Localidad = Suc.Sucursal_NroSucursal+Suc.Sucursal_Localidad 
+	 /*Hay un nro de sucursal que se repite*/
+	 WHERE compra_numero IS NOT NULL
+	 AND NOT EXISTS (
+          SELECT 1 FROM THIS_IS_FINE.Compra Comp
+          WHERE Comp.Compra_numero = maestra.Compra_Numero
+      )
+	 /*Por ahora compra está todo en NULL*/
+END;
+GO
+
+/*Migración de detalle_compra*/
+
+CREATE PROCEDURE THIS_IS_FINE.migrar_detalle_compra
+AS
+BEGIN
+
+     SET NOCOUNT ON;
+
+     INSERT INTO THIS_IS_FINE.detalle_compra (
+	     detalle_compra_numero,
+	     detalle_compra_material,
+	     compra_precio_unitario,
+	     compra_cantidad,
+	     compra_subtotal
+     )
+	 SELECT DISTINCT 
+	     Comp.compra_numero,
+		 Mat.id_material,
+		 compra_precio_unitario,
+	     compra_cantidad,
+	     compra_subtotal
+     FROM gd_esquema.Maestra maestra
+	 JOIN THIS_IS_FINE.Compra Comp
+	 ON maestra.Compra_Numero = Comp.compra_numero
+	 JOIN THIS_IS_FINE.Material Mat
+	 ON maestra.Material_Nombre+maestra.Material_Descripcion+maestra.Material_Precio =
+	 Mat.material_nombre+Mat.material_descripcion+Mat.material_precio
+	 WHERE material_nombre IS NOT NULL /*NO SE SI DEFINIR ALGUNO MÁS O YA ALCANZA*/
 END;
 GO
 
