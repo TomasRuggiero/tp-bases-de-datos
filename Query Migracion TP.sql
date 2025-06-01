@@ -114,6 +114,7 @@ create table THIS_IS_FINE.Pedido (
 	CONSTRAINT FK_Pedido_cliente FOREIGN KEY (pedido_cliente) REFERENCES THIS_IS_FINE.Cliente(cliente_codigo) */
 )
 
+
 create table THIS_IS_FINE.Factura (
 	factura_numero bigint,
 	factura_fecha datetime2(6),
@@ -493,21 +494,14 @@ BEGIN
 	/*Cómo hacíamos entonces con los NULL?*/
 END;
 GO
-exec THIS_IS_FINE.migrar_sucursal
+/*exec THIS_IS_FINE.migrar_sucursal
 select * from  THIS_IS_FINE.Sucursal
-DBCC CHECKIDENT ('THIS_IS_FINE.Sucursal', RESEED, 0);
-
-
-select distinct Sucursal_NroSucursal, Sucursal_Localidad, Sucursal_Provincia
-from gd_esquema.Maestra
-where Sucursal_NroSucursal is not null and Sucursal_Localidad is not null and Sucursal_Provincia is not null
-
+DBCC CHECKIDENT ('THIS_IS_FINE.Sucursal', RESEED, 0); */
 
 
 CREATE PROCEDURE THIS_IS_FINE.migrar_pedido
 AS
 BEGIN
-    SET NOCOUNT ON;
 
     INSERT INTO THIS_IS_FINE.Pedido (
         pedido_numero,
@@ -531,9 +525,16 @@ BEGIN
       ON s.sucursal_NroSucursal = ma.Sucursal_NroSucursal
     WHERE ma.Pedido_Numero IS NOT NULL
       AND ma.Sucursal_NroSucursal IS NOT NULL
-      AND s.sucursal_NroSucursal IS NOT NULL;
+      AND s.sucursal_NroSucursal IS NOT NULL
 END;
 GO
+
+exec THIS_IS_FINE.migrar_pedido
+
+select distinct Pedido_Numero, Pedido_Fecha, Pedido_Estado, Pedido_Total
+from gd_esquema.Maestra
+where Pedido_Numero is not null and Pedido_Fecha is not null and Pedido_Estado is not null and Pedido_Total is not null
+
 
 CREATE PROCEDURE THIS_IS_FINE.migrar_detalle_pedido
 AS
@@ -597,8 +598,6 @@ CREATE PROCEDURE THIS_IS_FINE.migrar_madera
 AS
 BEGIN
 
-     SET NOCOUNT ON;
-
      INSERT INTO THIS_IS_FINE.Madera (
 	     id_material,
 	     madera_color,
@@ -618,6 +617,8 @@ BEGIN
 END;
 GO
 
+
+exec THIS_IS_FINE.migrar_madera
 /*Migración de Tela*/
 
 CREATE PROCEDURE THIS_IS_FINE.migrar_tela
@@ -645,6 +646,8 @@ BEGIN
 END;
 GO
 
+exec THIS_IS_FINE.migrar_tela
+exec THIS_IS_FINE.migrar_relleno
 /*Migración de Relleno*/
 
 CREATE PROCEDURE THIS_IS_FINE.migrar_relleno
