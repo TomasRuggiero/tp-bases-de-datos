@@ -60,10 +60,22 @@ CREATE TABLE THIS_IS_FINE.BI_sucursal(
 		REFERENCES THIS_IS_FINE.BI_ubicacion (ubicacion_codigo)
 )
 
-CREATE TABLE THIS_IS_FINE.BI_Hecho_Venta(
-	
-	
+CREATE TABLE THIS_IS_FINE.BI_Hecho_Pedido(
+	pedido_sucursal INT,
+	pedido_tiempo INT,
+	pedido_rango_etario INT,
+	pedido_horario_ventas INT,
+	pedido_modelo_sillon INT,
+	pedido_estado INT,
+	pedido_fecha datetime2(6),
+	pedido_precio_total decimal(18,2)
+	CONSTRAINT FK_Hecho_Pedido_sucursal FOREIGN KEY (pedido_sucursal)
+		REFERENCES THIS_IS_FINE.BI_sucursal (sucursal_codigo)
 )
+
+
+
+
 
 
 
