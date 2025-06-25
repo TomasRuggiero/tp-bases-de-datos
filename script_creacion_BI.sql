@@ -39,57 +39,57 @@ IF OBJECT_ID('THIS_IS_FINE.BI_tiempo', 'U') IS NOT NULL
 -------- CREACION TABLA DIMENSIONES --------
 
 CREATE TABLE THIS_IS_FINE.BI_tiempo (
-	tiempo_codigo INT IDENTITY(1,1),
+	tiempo_id INT IDENTITY(1,1),
 	tiempo_anio INT,
 	tiempo_cuatrimestre INT,
 	tiempo_mes INT
-	CONSTRAINT PK_BI_tiempo PRIMARY KEY (tiempo_codigo)
+	CONSTRAINT PK_BI_tiempo PRIMARY KEY (tiempo_id)
 )
 
 CREATE TABLE THIS_IS_FINE.BI_ubicacion (
-	ubicacion_codigo INT IDENTITY(1,1),
+	ubicacion_id INT IDENTITY(1,1),
 	ubicacion_provincia NVARCHAR(255),
 	ubicacion_localidad NVARCHAR(255)
-	CONSTRAINT PK_ubicacion PRIMARY KEY (ubicacion_codigo)   
+	CONSTRAINT PK_ubicacion PRIMARY KEY (ubicacion_id)   
 )
 
 CREATE TABLE THIS_IS_FINE.BI_rango_etario (
-	rango_etario_codigo INT IDENTITY(1,1),
+	rango_etario_id INT IDENTITY(1,1),
 	rango NVARCHAR(50)
-	CONSTRAINT PK_rango_etario PRIMARY KEY (rango_etario_codigo)
+	CONSTRAINT PK_rango_etario PRIMARY KEY (rango_etario_id)
 )
 
 CREATE TABLE THIS_IS_FINE.BI_turno_ventas (
-	turno_codigo INT IDENTITY(1,1),
+	turno_id INT IDENTITY(1,1),
 	turno NVARCHAR(50)
-	CONSTRAINT PK_BI_turno_ventas PRIMARY KEY (turno_codigo)
+	CONSTRAINT PK_BI_turno_ventas PRIMARY KEY (turno_id)
 )
 
 CREATE TABLE THIS_IS_FINE.BI_tipo_material(
-	tipo_material_codigo INT IDENTITY(1,1),
+	tipo_material_id INT IDENTITY(1,1),
 	tipo_material NVARCHAR(255),
 	material_descripcion NVARCHAR(255)
-	CONSTRAINT PK_BI_tipo_material PRIMARY KEY (tipo_material_codigo)
+	CONSTRAINT PK_BI_tipo_material PRIMARY KEY (tipo_material_id)
 )
 
 CREATE TABLE THIS_IS_FINE.BI_modelo_sillon(
-	modelo_codigo INT IDENTITY(1,1),
+	modelo_id INT IDENTITY(1,1),
 	modelo_descripcion NVARCHAR(255)
-	CONSTRAINT PK_BI_modelo_sillon PRIMARY KEY (modelo_codigo)
+	CONSTRAINT PK_BI_modelo_sillon PRIMARY KEY (modelo_id)
 )
 
 CREATE TABLE THIS_IS_FINE.BI_estado_pedido(
-	estado_codigo INT IDENTITY(1,1),
+	estado_id INT IDENTITY(1,1),
 	estado NVARCHAR(255)
-	CONSTRAINT PK_BI_estado_pedido PRIMARY KEY (estado_codigo)
+	CONSTRAINT PK_BI_estado_pedido PRIMARY KEY (estado_id)
 )	
 
 CREATE TABLE THIS_IS_FINE.BI_sucursal(
-	sucursal_codigo INT IDENTITY(1,1),
+	sucursal_id INT IDENTITY(1,1),
 	sucursal_ubicacion INT
-	CONSTRAINT PK_BI_sucursal PRIMARY KEY (sucursal_codigo)
+	CONSTRAINT PK_BI_sucursal PRIMARY KEY (sucursal_id)
 	CONSTRAINT FK_sucursal_ubicacion FOREIGN KEY (sucursal_ubicacion)
-		REFERENCES THIS_IS_FINE.BI_ubicacion (ubicacion_codigo)
+		REFERENCES THIS_IS_FINE.BI_ubicacion (ubicacion_id)
 )
 
 CREATE TABLE THIS_IS_FINE.BI_Hecho_Pedido(
@@ -100,56 +100,77 @@ CREATE TABLE THIS_IS_FINE.BI_Hecho_Pedido(
 	pedido_rango_etario INT,
 	pedido_turno_ventas INT,
 	pedido_estado INT,
-	pedido_fecha datetime2(6),
-	pedido_precio_total decimal(18,2),
+	pedido_modelo_sillon INT,
+	pedido_cantidad_sillon INT,
+	pedido_sillon_precio DECIMAL(18,2),
+	pedido_subtotal BIGINT,
+	pedido_precio_total DECIMAL(18,2),
 
 	CONSTRAINT PK_Hecho_pedido PRIMARY KEY (pedido_id),
 
 	CONSTRAINT FK_Hecho_Pedido_sucursal FOREIGN KEY (pedido_sucursal)
-		REFERENCES THIS_IS_FINE.BI_sucursal (sucursal_codigo),
+		REFERENCES THIS_IS_FINE.BI_sucursal (sucursal_id),
 	CONSTRAINT FK_Hecho_Pedido_tiempo FOREIGN KEY (pedido_tiempo)
-		REFERENCES THIS_IS_FINE.BI_tiempo (tiempo_codigo),
+		REFERENCES THIS_IS_FINE.BI_tiempo (tiempo_id),
 	CONSTRAINT FK_Hecho_Pedido_rango_etario FOREIGN KEY (pedido_rango_etario)
-		REFERENCES THIS_IS_FINE.BI_rango_etario (rango_etario_codigo),
+		REFERENCES THIS_IS_FINE.BI_rango_etario (rango_etario_id),
 	CONSTRAINT FK_Hecho_Pedido_horario_ventas FOREIGN KEY (pedido_turno_ventas)
-		REFERENCES THIS_IS_FINE.BI_turno_ventas (turno_codigo),
+		REFERENCES THIS_IS_FINE.BI_turno_ventas (turno_id),
 	CONSTRAINT FK_Hecho_Pedido_estado FOREIGN KEY (pedido_estado)
-		REFERENCES THIS_IS_FINE.BI_estado_pedido (estado_codigo)
+		REFERENCES THIS_IS_FINE.BI_estado_pedido (estado_id)
 )
 
-CREATE TABLE THIS_IS_FINE.BI_Hecho_Detalle_Pedido(
-	detalle_pedido_id INT IDENTITY(1,1),
-	pedido_id INT,
-	det_pedido_sillon_modelo NVARCHAR(255),
-	det_pedido_cantidad BIGINT,
-	det_pedido_precio decimal(18,2),
-	det_pedido_subtotal BIGINT
+CREATE TABLE THIS_IS_FINE.BI_Hecho_Venta(
+	venta_id INT IDENTITY(1,1),
+	venta_pedido decimal(18,0),
+	venta_sucursal INT,
+	venta_tiempo INT,
+	venta_modelo_sillon INT,
+	venta_cantidad INT,
+	venta_total decimal(12,2)
 
-	CONSTRAINT PK_Hecho_Detalle_Pedido PRIMARY KEY (detalle_pedido_id),
-
-	CONSTRAINT FK_Hecho_Pedido_id FOREIGN KEY (pedido_id)
-		REFERENCES THIS_IS_FINE.BI_Hecho_Pedido (pedido_id)
+	CONSTRAINT PK_Hecho_Factura PRIMARY KEY (venta_id)
+	CONSTRAINT FK_Hecho_Factura_sucursal FOREIGN KEY (venta_sucursal)
+		REFERENCES THIS_IS_FINE.BI_sucursal (sucursal_id),
+	CONSTRAINT FK_Hecho_Factura_tiempo FOREIGN KEY (venta_tiempo)
+		REFERENCES THIS_IS_FINE.BI_tiempo (tiempo_id),
+	CONSTRAINT FK_Hecho_Factura_modelo_sillon FOREIGN KEY (venta_modelo_sillon)
+		REFERENCES THIS_IS_FINE.BI_modelo_sillon (modelo_id)
 )
 
+CREATE TABLE THIS_IS_FINE.BI_Hecho_Envio (
+	envio_id INT IDENTITY(1,1),
+	envio_tiempo_programado INT,
+	envio_tiempo_enviado INT,
+	envio_ubicacion INT,
+	envio_total DECIMAL(12,2),
 
+	CONSTRAINT PK_BI_Hecho_Envio PRIMARY KEY (envio_id),
+	
+	CONSTRAINT FK_Hecho_Envio_tiempo_programado FOREIGN KEY (envio_tiempo_programado)
+		REFERENCES THIS_IS_FINE.BI_tiempo (tiempo_id),
+	CONSTRAINT FK_Hecho_Envio_tiempo_enviado FOREIGN KEY (envio_tiempo_enviado)
+		REFERENCES THIS_IS_FINE.BI_tiempo (tiempo_id),
+	CONSTRAINT FK_Hecho_Envio_ubicacion FOREIGN KEY (envio_ubicacion)
+		REFERENCES THIS_IS_FINE.BI_ubicacion (ubicacion_id)
+)
 
-CREATE TABLE THIS_IS_FINE.BI_Hecho_factura(
-	factura_id INT IDENTITY(1,1),
-	factura_pedido decimal(18,0),
-	factura_sucursal INT,
-	factura_tiempo INT,
-	factura_modelo_sillon INT,
-	factura_cantidad INT,
-	factura_fecha datetime2(6),
-	factura_total decimal(12,2)
+CREATE TABLE THIS_IS_FINE.BI_Hecho_Compra (
+	compra_id INT IDENTITY(1,1),
+	compra_tiempo INT,
+	compra_material INT,
+	compra_sucursal INT,
+	compra_subtotal DECIMAL(12,2),
+	compra_total DECIMAL(12,2),
 
-	CONSTRAINT PK_Hecho_Factura PRIMARY KEY (factura_id)
-	CONSTRAINT FK_Hecho_Factura_sucursal FOREIGN KEY (factura_sucursal)
-		REFERENCES THIS_IS_FINE.BI_sucursal (sucursal_codigo),
-	CONSTRAINT FK_Hecho_Factura_tiempo FOREIGN KEY (factura_tiempo)
-		REFERENCES THIS_IS_FINE.BI_tiempo (tiempo_codigo),
-	CONSTRAINT FK_Hecho_Factura_modelo_sillon FOREIGN KEY (factura_modelo_sillon)
-		REFERENCES THIS_IS_FINE.BI_modelo_sillon (modelo_codigo)
+	CONSTRAINT PK_BI_Hecho_Compra PRIMARY KEY (compra_id),
+	
+	CONSTRAINT FK_Hecho_Compra_Tiempo FOREIGN KEY (compra_tiempo)
+		REFERENCES THIS_IS_FINE.BI_tiempo (tiempo_id),
+	CONSTRAINT FK_Hecho_Compra_Material FOREIGN KEY (compra_material)
+		REFERENCES THIS_IS_FINE.BI_tipo_material (tipo_material_id),
+	CONSTRAINT FK_Hecho_Sucursal FOREIGN KEY (compra_sucursal)
+		REFERENCES THIS_IS_FINE.BI_sucursal (sucursal_id)
 )
 
 --------  FUNCIONES  --------
