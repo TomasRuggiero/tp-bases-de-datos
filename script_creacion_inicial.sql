@@ -895,17 +895,27 @@ BEGIN
 	    detalle_factura_subtotal
     )
     SELECT 
-        factura.factura_numero,
-        p.pedido_Numero,
-		(select Sillon_Modelo_Codigo from gd_esquema.Maestra m2 where sillon_modelo is not null and m2.pedido_numero=maestra.Pedido_Numero and m2.Detalle_Pedido_SubTotal=maestra.Detalle_Pedido_SubTotal group by m2.sillon_modelo_codigo, m2.Pedido_Numero),
-        maestra.Detalle_Factura_Precio,
-        maestra.Detalle_Factura_Cantidad,
-        maestra.Detalle_Factura_SubTotal
-    FROM gd_esquema.Maestra maestra
-    JOIN THIS_IS_FINE.Factura factura 
-	ON factura.factura_numero = maestra.Factura_Numero
+    factura.factura_numero,
+    p.pedido_Numero,
+    (
+        SELECT TOP 1 sillon_id
+        FROM gd_esquema.Maestra m2
+		JOIN THIS_IS_FINE.Sillon s on s.sillon_codigo=m2.Sillon_Codigo and s.sillon_modelo=m2.Sillon_Modelo_Codigo
+        WHERE m2.pedido_numero = maestra.Pedido_Numero
+          AND m2.Detalle_Pedido_SubTotal = maestra.Detalle_Pedido_SubTotal
+          AND m2.Sillon_Codigo IS NOT NULL
+          AND m2.Sillon_Modelo_Codigo IS NOT NULL
+        ORDER BY m2.Sillon_Codigo
+    ) AS sillon_codigo,
+    maestra.Detalle_Factura_Precio,
+    maestra.Detalle_Factura_Cantidad,
+    maestra.Detalle_Factura_SubTotal
+	FROM gd_esquema.Maestra maestra
+	JOIN THIS_IS_FINE.Factura factura 
+		ON factura.factura_numero = maestra.Factura_Numero
 	JOIN THIS_IS_FINE.Pedido p
-		ON p.pedido_numero  = maestra.pedido_numero
+		ON p.pedido_numero = maestra.pedido_numero
+	WHERE maestra.Detalle_Factura_SubTotal IS NOT NULL
 END;
 GO
 
