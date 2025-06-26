@@ -6,7 +6,7 @@ GO
 
 IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'THIS_IS_FINE')
 BEGIN
-    EXEC('CREATE SCHEMA THIS_IS_FINE');
+    EXEC('CREATE OR ALTER SCHEMA THIS_IS_FINE');
 END;
 GO
 
@@ -26,7 +26,7 @@ DROP TABLE IF EXISTS THIS_IS_FINE.Relleno;
 DROP TABLE IF EXISTS THIS_IS_FINE.Compra;
 DROP TABLE IF EXISTS THIS_IS_FINE.Pedido;
 DROP TABLE IF EXISTS THIS_IS_FINE.Factura;
-DROP TABLE IF EXISTS THIS_IS_FINE.Envío;
+DROP TABLE IF EXISTS THIS_IS_FINE.Envio;
 
 -- Tablas relativamente independientes
 DROP TABLE IF EXISTS THIS_IS_FINE.Sillon;
@@ -41,7 +41,7 @@ DROP TABLE IF EXISTS THIS_IS_FINE.Localidad;
 DROP TABLE IF EXISTS THIS_IS_FINE.Provincia;
 
 
-create table THIS_IS_FINE.Cliente (
+CREATE table THIS_IS_FINE.Cliente (
 	cliente_codigo INT IDENTITY(1,1),
 	cliente_dni NVARCHAR(100),
 	cliente_nombre NVARCHAR(100),
@@ -55,13 +55,13 @@ create table THIS_IS_FINE.Cliente (
 	CONSTRAINT PK_Cliente PRIMARY KEY (cliente_codigo)
 )
 
-create table THIS_IS_FINE.Provincia (
+CREATE table THIS_IS_FINE.Provincia (
 	provincia_codigo INTEGER IDENTITY(1,1),
 	provincia_detalle NVARCHAR(255),
 	CONSTRAINT PK_Provincia PRIMARY KEY (provincia_codigo)
 )
 
-create table THIS_IS_FINE.Localidad (
+CREATE table THIS_IS_FINE.Localidad (
 	localidad_codigo INTEGER IDENTITY(1,1),
 	localidad_detalle NVARCHAR(255),
 	localidad_provincia INTEGER -- FK a Provincia
@@ -72,7 +72,7 @@ ADD CONSTRAINT FK_localidad_provincia FOREIGN KEY (localidad_provincia)
 REFERENCES THIS_IS_FINE.Provincia(provincia_codigo); */
 
 
-create table THIS_IS_FINE.Proveedor (
+CREATE table THIS_IS_FINE.Proveedor (
 	proveedor_codigo INTEGER IDENTITY(1,1),
 	proveedor_cuit NVARCHAR(100),
 	proveedor_razon_social NVARCHAR(100),
@@ -83,7 +83,7 @@ create table THIS_IS_FINE.Proveedor (
 	CONSTRAINT PK_Proveedor PRIMARY KEY (proveedor_codigo)
 )
 
-create table THIS_IS_FINE.Sucursal (
+CREATE table THIS_IS_FINE.Sucursal (
     sucursal_id int IDENTITY(1,1),
 	sucursal_NroSucursal bigint, 
 	sucursal_localidad INTEGER, --FK a localidad
@@ -100,7 +100,7 @@ create table THIS_IS_FINE.Sucursal (
 ADD CONSTRAINT FK_Sucursal_Localidad
 FOREIGN KEY (sucursal_localidad) REFERENCES THIS_IS_FINE.Localidad(localidad_codigo); */
 
-create table THIS_IS_FINE.Pedido (
+CREATE table THIS_IS_FINE.Pedido (
 	pedido_numero decimal(18,0),
 	pedido_fecha datetime2(6),
 	pedido_sucursal int,
@@ -115,7 +115,7 @@ create table THIS_IS_FINE.Pedido (
 )
 
 
-create table THIS_IS_FINE.Factura (
+CREATE table THIS_IS_FINE.Factura (
 	factura_numero bigint,
 	factura_fecha datetime2(6),
 	-- FK a Cliente
@@ -128,7 +128,7 @@ create table THIS_IS_FINE.Factura (
 	CONSTRAINT FK_factura_sucursal FOREIGN KEY (factura_sucursal) REFERENCES THIS_IS_FINE.Sucursal(sucursal_id) */
 )
 
-create table THIS_IS_FINE.detalle_factura (
+CREATE table THIS_IS_FINE.detalle_factura (
 	fact_det_id int,
 	--Fk a Factura
 	fact_det_factura bigint,
@@ -141,7 +141,7 @@ create table THIS_IS_FINE.detalle_factura (
 	constraint PK_dettaleFactura primary key (fact_det_factura, fact_det_pedido, fact_det_id)
 )
 
-create table THIS_IS_FINE.Envio(
+CREATE table THIS_IS_FINE.Envio(
     envio_numero decimal(18,0),
 	envio_fecha_programada datetime2(6),
 	envio_fecha datetime2(6),
@@ -152,7 +152,7 @@ create table THIS_IS_FINE.Envio(
 	CONSTRAINT PK_Envio PRIMARY KEY (envio_numero)
 )
 
-create table THIS_IS_FINE.Sillon (
+CREATE table THIS_IS_FINE.Sillon (
 	sillon_codigo bigint,
 	sillon_id_modelo BIGINT,--FK sillon_modelo
 	sillon_id_medida BIGINT,-- Fk sillon_medida
@@ -176,7 +176,7 @@ CREATE TABLE THIS_IS_FINE.detalle_pedido (
  );
 --GO
 
-create table THIS_IS_FINE.pedido_cancelacion (
+CREATE table THIS_IS_FINE.pedido_cancelacion (
 	pedido_cancelacion_codigo int IDENTITY(1,1),
 	pedido_cancelacion_fecha datetime2(6),
 	pedido_cancelacion_motivo varchar(255),
@@ -184,7 +184,7 @@ create table THIS_IS_FINE.pedido_cancelacion (
 	CONSTRAINT PK_Pedido_cancelacion PRIMARY KEY (pedido_cancelacion_codigo)
 )
 
-create table THIS_IS_FINE.sillon_modelo (
+CREATE table THIS_IS_FINE.sillon_modelo (
 	sillon_modelo_codigo bigint,
 	sillon_modelo_descripcion nvarchar(255),
 	sillon_modelo_precio decimal(18,2),
@@ -192,7 +192,7 @@ create table THIS_IS_FINE.sillon_modelo (
 	CONSTRAINT PK_Modelo_Sillon PRIMARY KEY (sillon_modelo_codigo)
 )
 
-create table THIS_IS_FINE.sillon_medida (
+CREATE table THIS_IS_FINE.sillon_medida (
 	sillon_medida_codigo int IDENTITY(1,1),
 	sillon_medida_alto decimal(18,2),
 	sillon_medida_ancho decimal(18,2),
@@ -202,7 +202,7 @@ create table THIS_IS_FINE.sillon_medida (
 )
 
 
-create table THIS_IS_FINE.Compra (
+CREATE table THIS_IS_FINE.Compra (
 	compra_numero decimal(18,0),
 	compra_sucursal bigint,-- FK a Sucursal
 	compra_proveedor int,-- FK a Proveedor
@@ -212,7 +212,7 @@ create table THIS_IS_FINE.Compra (
 )
 
 
-create table THIS_IS_FINE.detalle_compra (
+CREATE table THIS_IS_FINE.detalle_compra (
 	detalle_compra_numero decimal(18,0), -- FK a Compra
 	detalle_compra_material int, -- FK a Material
 	detalle_compra_precio decimal(18,2),
@@ -222,13 +222,13 @@ create table THIS_IS_FINE.detalle_compra (
 	CONSTRAINT PK_DetalleCompra PRIMARY KEY (detalle_compra_numero, detalle_compra_material)
 )
 
-create table THIS_IS_FINE.sillon_material (
+CREATE table THIS_IS_FINE.sillon_material (
 	   id_material int, --FK a material
 	   sillon_codigo bigint, -- FK a sillon
 	   CONSTRAINT PK_SillonMaterial PRIMARY KEY (id_material, sillon_codigo)
 )
 
-create table THIS_IS_FINE.Material (
+CREATE table THIS_IS_FINE.Material (
     id_material int IDENTITY(1,1),
 	material_tipo int,
 	material_nombre nvarchar(255),
@@ -238,14 +238,14 @@ create table THIS_IS_FINE.Material (
 )
 
 
-create table THIS_IS_FINE.Madera (
+CREATE table THIS_IS_FINE.Madera (
     id_material int, --FK a material
 	madera_color nvarchar(255),
 	madera_dureza nvarchar(255)
 	CONSTRAINT PK_Madera PRIMARY KEY (id_material),
 )
 
-create table THIS_IS_FINE.Tela (
+CREATE table THIS_IS_FINE.Tela (
     id_material int, --FK a material
 	tela_color nvarchar(255),
 	tela_textura nvarchar(255)
@@ -253,13 +253,13 @@ create table THIS_IS_FINE.Tela (
 )
 
 
-create table THIS_IS_FINE.Relleno (
+CREATE table THIS_IS_FINE.Relleno (
     id_material int, --FK a material
 	relleno_densidad decimal(38,2)
 	CONSTRAINT PK_Relleno PRIMARY KEY (id_material),
 )
 
-create table THIS_IS_FINE.tipo_material (
+CREATE table THIS_IS_FINE.tipo_material (
      tipo_material_id int IDENTITY(1,1),
 	 tipo_material_detalle nvarchar(255)
 	 CONSTRAINT PK_Tipo_Material PRIMARY KEY (tipo_material_id)
@@ -278,7 +278,7 @@ GO
 
       --------------   MIGRACIONES   -------------- 
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_sillon_modelo
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_sillon_modelo
 AS
 BEGIN
 
@@ -305,7 +305,7 @@ select * from THIS_IS_FINE.sillon_modelo
 
 /*Insertar Medidas Sill�n de la tabla maestra a la tabla medida_sillon*/
 GO
-CREATE PROCEDURE THIS_IS_FINE.migrar_sillon_medida
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_sillon_medida
 AS
 BEGIN
 
@@ -331,7 +331,7 @@ GO
 
 /*Insertar Tipo Material de la tabla maestra a la tabla tipo_material*/
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_tipo_material
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_tipo_material
 AS
 BEGIN
 
@@ -350,7 +350,7 @@ GO
 
 /*Insertar provincia de la tabla maestra a tabla provincia*/
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_provincia
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_provincia
 AS
 BEGIN
 INSERT INTO THIS_IS_FINE.Provincia (provincia_detalle)
@@ -362,13 +362,11 @@ FROM (
     UNION
     SELECT Proveedor_Provincia FROM gd_esquema.Maestra
 ) AS provincias
-WHERE provincia IS NOT NULL;
+WHERE provincia IS NOT NULL
+and not exists (
+	select 1 from THIS_IS_FINE.Provincia
+)
 END;
-GO
-
-exec THIS_IS_FINE.migrar_provincia
-
-select * from THIS_IS_FINE.Provincia
 GO
 
 /*insertando localidades de proveedor*/
@@ -394,6 +392,7 @@ END;
 GO
 
 exec THIS_IS_FINE.migrar_localidades_proveedor
+GO
 
 --DBCC CHECKIDENT ('THIS_IS_FINE.Localidad', RESEED, 0);
 
@@ -419,6 +418,7 @@ BEGIN
       )
 END;
 GO
+
 /*insertando localidades de cliente*/
 
 CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_localidades_cliente
@@ -442,17 +442,18 @@ BEGIN
 END;
 GO
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_localidades
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_localidades
 AS
 BEGIN
 	EXEC THIS_IS_FINE.migrar_localidades_cliente;
 	EXEC THIS_IS_FINE.migrar_localidades_proveedor;
 	EXEC THIS_IS_FINE.migrar_localidades_sucursal;
 END
+GO
 
 /* Migracion de Cliente */
 
-create or alter procedure THIS_IS_FINE.migrar_cliente
+CREATE OR ALTER procedure THIS_IS_FINE.migrar_cliente
 as 
 BEGIN 
 	insert into THIS_IS_FINE.Cliente (cliente_dni, cliente_nombre, cliente_apellido, cliente_fecha_nacimiento, cliente_mail, cliente_telefono, cliente_direccion, cliente_localidad)
@@ -499,7 +500,7 @@ select * from  THIS_IS_FINE.Sucursal
 DBCC CHECKIDENT ('THIS_IS_FINE.Sucursal', RESEED, 0); */
 
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_pedido
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_pedido
 AS
 BEGIN
 
@@ -531,12 +532,14 @@ GO
 
 exec THIS_IS_FINE.migrar_pedido
 
-select distinct Pedido_Numero, Pedido_Fecha, Pedido_Estado, Pedido_Total
-from gd_esquema.Maestra
-where Pedido_Numero is not null and Pedido_Fecha is not null and Pedido_Estado is not null and Pedido_Total is not null
+-- select distinct Pedido_Numero, Pedido_Fecha, Pedido_Estado, Pedido_Total
+-- from gd_esquema.Maestra
+-- where Pedido_Numero is not null and Pedido_Fecha is not null and Pedido_Estado is not null and Pedido_Total is not null
+select * from THIS_IS_FINE.Pedido
+GO
 
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_detalle_pedido
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_detalle_pedido
 AS
 BEGIN
 
@@ -566,7 +569,7 @@ END
 GO
 /*Migración de Material*/
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_material
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_material
 AS
 BEGIN
 
@@ -594,7 +597,7 @@ GO
 
 /*Migración de Madera*/
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_madera
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_madera
 AS
 BEGIN
 
@@ -619,9 +622,10 @@ GO
 
 
 exec THIS_IS_FINE.migrar_madera
+GO
 /*Migración de Tela*/
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_tela
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_tela
 AS
 BEGIN
 
@@ -648,9 +652,10 @@ GO
 
 exec THIS_IS_FINE.migrar_tela
 exec THIS_IS_FINE.migrar_relleno
+GO
 /*Migración de Relleno*/
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_relleno
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_relleno
 AS
 BEGIN
 
@@ -675,7 +680,7 @@ GO
 
 /*Migración de Sillon*/
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_sillon
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_sillon
 AS
 BEGIN
 
@@ -702,7 +707,7 @@ GO
 
 /*Migración de Sillon*/
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_sillon_material
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_sillon_material
 AS
 BEGIN
 
@@ -725,7 +730,7 @@ BEGIN
 END;
 GO
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_Facturas
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_Facturas
 AS
 BEGIN
 
@@ -756,7 +761,7 @@ BEGIN
 END;
 GO
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_detalle_factura
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_detalle_factura
 AS
 BEGIN
     INSERT INTO THIS_IS_FINE.detalle_factura (
@@ -787,7 +792,7 @@ GO
 
 /*Migración de Proveedor*/
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_proveedor
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_proveedor
 AS
 BEGIN
 
@@ -816,7 +821,7 @@ GO
 
 /*Migración de Compra*/
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_compra
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_compra
 AS
 BEGIN
 
@@ -852,7 +857,7 @@ GO
 
 /*Migración de detalle_compra*/
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_detalle_compra
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_detalle_compra
 AS
 BEGIN
 
@@ -883,7 +888,7 @@ GO
 
 /*Migración de Envío*/
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_envio
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_envio
 AS
 BEGIN
 
@@ -902,8 +907,8 @@ BEGIN
 	     envio_numero,
 	     envio_fecha_programada,
 	     envio_fecha,
-	     envio_importe_traslado,
-	     envio_importe_subida,
+	     envio_importeTraslado,
+	     envio_importeSubida,
 	     envio_total,
 		 Fac.factura_numero
      FROM gd_esquema.Maestra maestra
@@ -915,13 +920,13 @@ GO
 
 /*Migración de Envío*/
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_pedido_de_cancelacion
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_pedido_de_cancelacion
 AS
 BEGIN
 
      SET NOCOUNT ON;
 
-     INSERT INTO THIS_IS_FINE.pedido_de_cancelacion (
+     INSERT INTO THIS_IS_FINE.pedido_cancelacion (
 	     pedido_cancelacion_fecha,
 	     pedido_cancelacion_motivo,
 	     pedido_codigo
@@ -940,8 +945,6 @@ GO
 select * from THIS_IS_FINE.Proveedor
 
 
-
-/*
 exec THIS_IS_FINE.migrar_provincia;
 exec THIS_IS_FINE.migrar_localidades_proveedor; 
 exec THIS_IS_FINE.migrar_localidades_sucursal; 
@@ -952,7 +955,7 @@ exec THIS_IS_FINE.migrar_Facturas;
 exec THIS_IS_FINE.migrar_Pedido;
 exec THIS_IS_FINE.migrar_detalle_pedido;
 exec THIS_IS_FINE.migrar_detalle_factura;
-GO*/
+GO
 
 -- USE GD1C2025;
 -- GO
@@ -968,3 +971,5 @@ GO*/
 -- -- 2) Ejecuto el batch que borrará todos esos procedimientos
 -- EXEC sp_executesql @sql;
 -- GO
+
+select * from THIS_IS_FINE.detalle_factura
