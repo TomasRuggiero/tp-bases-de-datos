@@ -126,7 +126,7 @@ CREATE TABLE THIS_IS_FINE.BI_Hecho_Pedido(
 	pedido_rango_etario INT,
 	pedido_turno_ventas INT,
 	pedido_estado INT,
-	pedido_modelo_sillon NVARCHAR(255),
+	pedido_modelo_sillon INT,
 	pedido_cantidad_sillon INT,
 	pedido_sillon_precio DECIMAL(18,2),
 	pedido_subtotal BIGINT,
@@ -143,14 +143,14 @@ CREATE TABLE THIS_IS_FINE.BI_Hecho_Pedido(
 	CONSTRAINT FK_Hecho_Pedido_horario_ventas FOREIGN KEY (pedido_turno_ventas)
 		REFERENCES THIS_IS_FINE.BI_turno_ventas (turno_id),
 	CONSTRAINT FK_Hecho_Pedido_estado FOREIGN KEY (pedido_estado)
-		REFERENCES THIS_IS_FINE.BI_estado_pedido (estado_id)
+		REFERENCES THIS_IS_FINE.BI_estado_pedido (estado_id),
 	CONSTRAINT FK_Hecho_Pedido_modelo_sillon FOREIGN KEY (pedido_modelo_sillon)
 		REFERENCES THIS_IS_FINE.BI_modelo_sillon (modelo_id)
 )
 
 CREATE TABLE THIS_IS_FINE.BI_Hecho_Venta(
 	venta_id INT IDENTITY(1,1),
-	venta_pedido decimal(18,0),
+	venta_factura INT, 
 	venta_ubicacion INT,
 	venta_tiempo INT,
 	venta_modelo_sillon INT,
@@ -302,7 +302,7 @@ INSERT INTO THIS_IS_FINE.BI_tipo_material (tipo_material)
 SELECT tipo_material_detalle
 FROM THIS_IS_FINE.tipo_material
 
-SELECT * FROM THIS_IS_FINE.BI_tipo_material
+
 
 ----- INSERT SILLON MODELO  -----
 
@@ -380,17 +380,41 @@ INSERT INTO THIS_IS_FINE.BI_Hecho_Envio(
 	envio_tiempo_enviado,
 	envio_ubicacion,
 	envio_total)
-SELECT t1.tiempo_id
-       t2.tiempo_id
-	   ubicacion_id
+SELECT t1.tiempo_id,
+       t2.tiempo_id,
+	   ubicacion_id,
 	   (envio_importe_traslado + envio_importe_subida) as envio_total
 FROM THIS_IS_FINE.Envio
-JOIN THIS_IS_FINE.BI_tiempo t1 ON YEAR(envio_fecha_programada) = tiempo_anio
-	AND THIS_IS_FINE.getCuatri(envio_fecha_programadao) = tiempo_cuatrimestre AND MONTH(envio_fecha_programada) = tiempo_mes
-JOIN THIS_IS_FINE.BI_tiempo t2 ON YEAR(envio_fecha) = tiempo_anio
-	AND THIS_IS_FINE.getCuatri(envio_fecha) = tiempo_cuatrimestre AND MONTH(envio_fecha) = tiempo_mes
+JOIN THIS_IS_FINE.BI_tiempo t1 ON YEAR(envio_fecha_programada) = t1.tiempo_anio
+	AND THIS_IS_FINE.getCuatri(envio_fecha_programada) = t1.tiempo_cuatrimestre AND MONTH(envio_fecha_programada) = t1.tiempo_mes
+JOIN THIS_IS_FINE.BI_tiempo t2 ON YEAR(envio_fecha) = t2.tiempo_anio
+	AND THIS_IS_FINE.getCuatri(envio_fecha) = t2.tiempo_cuatrimestre AND MONTH(envio_fecha) = t2.tiempo_mes
 
-
+INSERT INTO THIS_IS_FINE.BI_Hecho_Venta(
+    venta_factura, 
+	venta_ubicacion,
+	venta_tiempo,
+	venta_modelo_sillon,
+	venta_cantidad,
+	venta_total)
+SELECT factura_numero
+       ubicacion_id,
+	   tiempo_id,
+	   modelo.sillon_modelo_codigo,
+	   dp.detalle_factura_cantidad,
+	   factura_total
+FROM THIS_IS_FINE.Factura
+JOIN THIS_IS_FINE.BI_tiempo ON YEAR(factura_fecha) = tiempo_anio
+	AND THIS_IS_FINE.getCuatri(factura_fecha) = tiempo_cuatrimestre AND MONTH(factura_fecha) = tiempo_mes
+JOIN THIS_IS_FINE.Sucursal sucursal ON sucursal.sucursal_id = factura_sucursal
+JOIN THIS_IS_FINE.Localidad localidad ON sucursal_localidad = localidad.localidad_codigo
+JOIN THIS_IS_FINE.Provincia provincia ON localidad.localidad_provincia = provincia.provincia_codigo
+JOIN THIS_IS_FINE.BI_ubicacion ubicacion ON provincia.provincia_detalle = ubicacion.ubicacion_provincia
+AND localidad.localidad_detalle = ubicacion.ubicacion_localidad
+JOIN THIS_IS_FINE.detalle_factura dp ON factura_numero = dp.detalle_factura_numero
+JOIN THIS_IS_FINE.Sillon s ON dp.detalle_factura_sillon = s.sillon_id
+JOIN THIS_IS_FINE.sillon_modelo modelo ON s.sillon_modelo = modelo.sillon_modelo_codigo
+	   
 
 
 
