@@ -380,15 +380,49 @@ INSERT INTO THIS_IS_FINE.BI_Hecho_Envio(
 	envio_tiempo_enviado,
 	envio_ubicacion,
 	envio_total)
-SELECT t1.tiempo_id
-       t2.tiempo_id
-	   ubicacion_id
+SELECT t1.tiempo_id,
+       t2.tiempo_id,
+	   ubicacion_id,
 	   (envio_importe_traslado + envio_importe_subida) as envio_total
 FROM THIS_IS_FINE.Envio
 JOIN THIS_IS_FINE.BI_tiempo t1 ON YEAR(envio_fecha_programada) = tiempo_anio
-	AND THIS_IS_FINE.getCuatri(envio_fecha_programadao) = tiempo_cuatrimestre AND MONTH(envio_fecha_programada) = tiempo_mes
-JOIN THIS_IS_FINE.BI_tiempo t2 ON YEAR(envio_fecha) = tiempo_anio
-	AND THIS_IS_FINE.getCuatri(envio_fecha) = tiempo_cuatrimestre AND MONTH(envio_fecha) = tiempo_mes
+	AND THIS_IS_FINE.getCuatri(envio_fecha_programada) = t1.tiempo_cuatrimestre AND MONTH(envio_fecha_programada) = tiempo_mes
+JOIN THIS_IS_FINE.BI_tiempo t2 ON YEAR(envio_fecha) = t2.tiempo_anio
+	AND THIS_IS_FINE.getCuatri(envio_fecha) = t2.tiempo_cuatrimestre AND MONTH(envio_fecha) = t2.tiempo_mes
+
+
+
+
+
+------  VISTAS  ------
+
+---- VISTA GANANCIAS ----
+
+
+
+
+---- VISTA 4: VOLUMEN DE PEDIDOS ----
+
+SELECT * FROM THIS_IS_FINE.BI_Hecho_Pedido
+
+CREATE VIEW THIS_IS_FINE.Volumen_Pedidos AS 
+SELECT 
+	COUNT(DISTINCT pedido.pedido_codigo) AS Cantidad_Pedidos,
+	ubicacion.ubicacion_localidad AS sucursal_localidad,
+	ubicacion.ubicacion_provincia AS sucursal_provincia,
+	turno AS turno,
+	CAST(tiempo.tiempo_mes AS VARCHAR) + '-' + CAST(tiempo.tiempo_anio AS VARCHAR) AS [mes-año]
+FROM THIS_IS_FINE.BI_Hecho_Pedido pedido
+JOIN THIS_IS_FINE.BI_tiempo tiempo ON pedido.pedido_tiempo = tiempo.tiempo_id
+JOIN THIS_IS_FINE.BI_ubicacion ubicacion ON pedido.pedido_ubicacion = ubicacion.ubicacion_id
+JOIN THIS_IS_FINE.BI_rango_etario rangoEtario ON rangoEtario.rango_etario_id = pedido.pedido_rango_etario
+JOIN THIS_IS_FINE.BI_turno_ventas ON pedido.pedido_turno_ventas = turno_id
+GROUP BY ubicacion.ubicacion_localidad, ubicacion.ubicacion_provincia, turno, tiempo.tiempo_mes, tiempo.tiempo_anio
+
+
+
+
+
 
 
 
