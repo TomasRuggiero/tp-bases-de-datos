@@ -894,10 +894,10 @@ BEGIN
 	    detalle_factura_cantidad,
 	    detalle_factura_subtotal
     )
-    SELECT
+    SELECT 
         factura.factura_numero,
-        dp.pedido_Numero,
-		dp.sillon_id,
+        p.pedido_Numero,
+		s.sillon_id,
         maestra.Detalle_Factura_Precio,
         maestra.Detalle_Factura_Cantidad,
         maestra.Detalle_Factura_SubTotal
@@ -906,7 +906,7 @@ BEGIN
 	ON factura.factura_numero = maestra.Factura_Numero
 	JOIN THIS_IS_FINE.Pedido p
 		ON p.pedido_numero  = maestra.pedido_numero
-		JOIN THIS_IS_FINE.Sillon s
+		LEFT JOIN THIS_IS_FINE.Sillon s
 		ON s.sillon_codigo = maestra.sillon_codigo 
 		AND s.sillon_modelo = maestra.Sillon_Modelo_Codigo 
     JOIN THIS_IS_FINE.detalle_pedido dp 
@@ -1174,3 +1174,54 @@ CREATE INDEX IX_Relleno_Densidad ON THIS_IS_FINE.Relleno(relleno_densidad);
 -- -- 2) Ejecuto el batch que borrará todos esos procedimientos
 -- EXEC sp_executesql @sql;
 -- GO
+
+SELECT * FROM THIS_IS_FINE.Sillon s JOIN THIS_IS_FINE.detalle_pedido dp ON s.sillon_id = dp.sillon_id 
+join THIS_IS_FINE.Pedido P on p.pedido_numero = dp.pedido_numero
+
+ SELECT 
+        factura.factura_numero,
+        p.pedido_Numero,
+		s.sillon_id,
+        maestra.Detalle_Factura_Precio,
+        maestra.Detalle_Factura_Cantidad,
+        maestra.Detalle_Factura_SubTotal
+	FROM gd_esquema.Maestra maestra
+    JOIN THIS_IS_FINE.Factura factura 
+    ON factura.factura_numero = maestra.Factura_Numero
+	JOIN THIS_IS_FINE.Pedido p
+	ON p.pedido_numero  = maestra.pedido_numero
+	JOIN THIS_IS_FINE.detalle_pedido dp 
+	ON dp.pedido_numero = p.pedido_numero    
+	JOIN THIS_IS_FINE.Sillon s
+	ON dp.sillon_id = s.sillon_id
+
+ SELECT 
+        factura.factura_numero,
+        dp.pedido_Numero,
+	    dp.sillon_id,
+        maestra.Detalle_Factura_Precio,
+        maestra.Detalle_Factura_Cantidad,
+        maestra.Detalle_Factura_SubTotal
+ SELECT *   FROM gd_esquema.Maestra maestra
+	JOIN THIS_IS_FINE.Pedido p
+		ON p.pedido_numero  = maestra.pedido_numero
+	    JOIN THIS_IS_FINE.Sillon s
+		ON s.sillon_codigo = maestra.sillon_codigo 
+		AND s.sillon_modelo = maestra.Sillon_Modelo_Codigo 
+    JOIN THIS_IS_FINE.detalle_pedido dp 
+	ON dp.pedido_numero = p.pedido_numero
+	AND dp.sillon_id = s.sillon_id   
+    LEFT JOIN THIS_IS_FINE.Factura factura 
+	ON factura.factura_numero = maestra.Factura_Numero
+
+
+	
+		JOIN THIS_IS_FINE.Sillon AS s
+		ON s.sillon_codigo = m.sillon_codigo 
+		AND s.sillon_modelo = m.Sillon_Modelo_Codigo --por códigos sillón repetidos
+		WHERE m.pedido_numero  IS NOT NULL
+		AND m.sillon_codigo  IS NOT NULL
+
+		select Detalle_Factura_Cantidad, Detalle_Factura_Precio from gd_esquema.Maestra
+
+		SELECT * FROM THIS_IS_FINE.detalle_factura

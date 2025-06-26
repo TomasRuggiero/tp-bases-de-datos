@@ -144,6 +144,8 @@ CREATE TABLE THIS_IS_FINE.BI_Hecho_Pedido(
 		REFERENCES THIS_IS_FINE.BI_turno_ventas (turno_id),
 	CONSTRAINT FK_Hecho_Pedido_estado FOREIGN KEY (pedido_estado)
 		REFERENCES THIS_IS_FINE.BI_estado_pedido (estado_id)
+	CONSTRAINT FK_Hecho_Pedido_modelo_sillon FOREIGN KEY (pedido_modelo_sillon)
+		REFERENCES THIS_IS_FINE.BI_modelo_sillon (modelo_id)
 )
 
 CREATE TABLE THIS_IS_FINE.BI_Hecho_Venta(
@@ -153,14 +155,14 @@ CREATE TABLE THIS_IS_FINE.BI_Hecho_Venta(
 	venta_tiempo INT,
 	venta_modelo_sillon INT,
 	venta_cantidad INT,
-	venta_total decimal(12,2)
+	venta_total decimal(18,2)
 
-	CONSTRAINT PK_Hecho_Factura PRIMARY KEY (venta_id)
-	CONSTRAINT FK_Hecho_Factura_ubicacion FOREIGN KEY (venta_ubicacion)
+	CONSTRAINT PK_Hecho_Venta PRIMARY KEY (venta_id)
+	CONSTRAINT FK_Hecho_Venta_ubicacion FOREIGN KEY (venta_ubicacion)
 		REFERENCES THIS_IS_FINE.BI_ubicacion (ubicacion_id),
-	CONSTRAINT FK_Hecho_Factura_tiempo FOREIGN KEY (venta_tiempo)
+	CONSTRAINT FK_Hecho_Venta_tiempo FOREIGN KEY (venta_tiempo)
 		REFERENCES THIS_IS_FINE.BI_tiempo (tiempo_id),
-	CONSTRAINT FK_Hecho_Factura_modelo_sillon FOREIGN KEY (venta_modelo_sillon)
+	CONSTRAINT FK_Hecho_Venta_modelo_sillon FOREIGN KEY (venta_modelo_sillon)
 		REFERENCES THIS_IS_FINE.BI_modelo_sillon (modelo_id)
 )
 
@@ -169,7 +171,7 @@ CREATE TABLE THIS_IS_FINE.BI_Hecho_Envio (
 	envio_tiempo_programado INT,
 	envio_tiempo_enviado INT,
 	envio_ubicacion INT,
-	envio_total DECIMAL(12,2),
+	envio_total DECIMAL(18,2),
 
 	CONSTRAINT PK_BI_Hecho_Envio PRIMARY KEY (envio_id),
 	
