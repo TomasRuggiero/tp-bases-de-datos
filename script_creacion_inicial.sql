@@ -897,7 +897,7 @@ BEGIN
     SELECT 
         factura.factura_numero,
         p.pedido_Numero,
-		s.sillon_id,
+		(select Sillon_Modelo_Codigo from gd_esquema.Maestra m2 where sillon_modelo is not null and m2.pedido_numero=maestra.Pedido_Numero and m2.Detalle_Pedido_SubTotal=maestra.Detalle_Pedido_SubTotal group by m2.sillon_modelo_codigo, m2.Pedido_Numero),
         maestra.Detalle_Factura_Precio,
         maestra.Detalle_Factura_Cantidad,
         maestra.Detalle_Factura_SubTotal
@@ -906,16 +906,19 @@ BEGIN
 	ON factura.factura_numero = maestra.Factura_Numero
 	JOIN THIS_IS_FINE.Pedido p
 		ON p.pedido_numero  = maestra.pedido_numero
-		LEFT JOIN THIS_IS_FINE.Sillon s
-		ON s.sillon_codigo = maestra.sillon_codigo 
-		AND s.sillon_modelo = maestra.Sillon_Modelo_Codigo 
-    JOIN THIS_IS_FINE.detalle_pedido dp 
-	ON dp.pedido_numero = p.pedido_numero
-	AND dp.sillon_id = s.sillon_id
-   
 END;
 GO
 
+-- select * from THIS_IS_FINE.detalle_pedido
+
+-- select maestra.Pedido_Numero, Sillon_Modelo_Codigo, Detalle_Pedido_SubTotal from gd_esquema.Maestra as maestra
+-- where maestra.Pedido_Numero='56360503'
+-- group by sillon_modelo_codigo, maestra.pedido_numero, Detalle_Pedido_SubTotal
+
+-- select * from gd_esquema.Maestra where Detalle_Pedido_Cantidad is not Null and Detalle_Factura_Cantidad is not NULL
+-- select * from gd_esquema.Maestra where Pedido_Numero='56360503'
+
+go
 /*Migración de Proveedor*/
 
 CREATE PROCEDURE THIS_IS_FINE.migrar_proveedor
@@ -1152,14 +1155,6 @@ CREATE INDEX IX_Tela_Color ON THIS_IS_FINE.Tela(tela_color);
 CREATE INDEX IX_Tela_Textura ON THIS_IS_FINE.Tela(tela_textura);
 CREATE INDEX IX_Relleno_Densidad ON THIS_IS_FINE.Relleno(relleno_densidad);
 
-
-
-
-
-
-
-
-
 -- USE GD1C2025;
 -- GO
 
@@ -1225,3 +1220,5 @@ join THIS_IS_FINE.Pedido P on p.pedido_numero = dp.pedido_numero
 		select Detalle_Factura_Cantidad, Detalle_Factura_Precio from gd_esquema.Maestra
 
 		SELECT * FROM THIS_IS_FINE.detalle_factura
+
+select * from THIS_IS_FINE.Factura
