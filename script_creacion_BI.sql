@@ -188,6 +188,7 @@ CREATE TABLE THIS_IS_FINE.BI_Hecho_Compra (
 	compra_ubicacion INT,
 	compra_subtotal DECIMAL(12,2),
 	compra_total DECIMAL(12,2),
+	compra_cantidad DECIMAL(18,0),
 
 	CONSTRAINT PK_BI_Hecho_Compra PRIMARY KEY (compra_id),
 	
@@ -198,6 +199,10 @@ CREATE TABLE THIS_IS_FINE.BI_Hecho_Compra (
 	CONSTRAINT FK_Hecho_Compra_ubicacion FOREIGN KEY (compra_ubicacion)
 		REFERENCES THIS_IS_FINE.BI_ubicacion (ubicacion_id),
 )
+
+---- LO DEJO POR SI YA TIENEN CARGADA LA TABLA COMO ESTABA ANTES (SIN CANTIDAD)
+ALTER TABLE THIS_IS_FINE.BI_Hecho_Compra
+ADD compra_cantidad DECIMAL(18,0)
 
 --------  FUNCIONES  --------
 
@@ -295,6 +300,8 @@ INSERT INTO THIS_IS_FINE.BI_tipo_material (tipo_material)
 SELECT tipo_material_detalle
 FROM THIS_IS_FINE.tipo_material
 
+SELECT * FROM THIS_IS_FINE.BI_tipo_material
+
 ----- INSERT SILLON MODELO  -----
 
 INSERT INTO THIS_IS_FINE.BI_modelo_sillon (modelo_descripcion)
@@ -342,6 +349,32 @@ JOIN THIS_IS_FINE.BI_tiempo tiempo ON YEAR(pedido.pedido_fecha) = tiempo.tiempo_
 JOIN THIS_IS_FINE.BI_rango_etario rango ON THIS_IS_FINE.rangoEtario(cliente.cliente_fecha_nacimiento) = rango.rango
 JOIN THIS_IS_FINE.BI_turno_ventas turno ON THIS_IS_FINE.getRangoHorario(CONVERT(TIME, pedido.pedido_fecha)) = turno.turno
 JOIN THIS_IS_FINE.BI_estado_pedido estado ON pedido.pedido_estado = estado.estado
+
+----- INSERT HECHO COMPRA -----
+
+INSERT INTO THIS_IS_FINE.BI_Hecho_Compra( 
+	compra_tiempo,
+	compra_material,
+	compra_cantidad,
+	compra_ubicacion,
+	compra_subtotal,
+	compra_total)
+SELECT tiempo_id, BI_material.tipo_material_id, detalle.detalle_compra_cantidad, ubicacion_id, detalle.detalle_compra_subtotal, compra.compra_total
+FROM THIS_IS_FINE.Compra compra 
+JOIN THIS_IS_FINE.detalle_compra detalle ON detalle.detalle_compra_numero = compra.compra_numero
+JOIN THIS_IS_FINE.Material material ON material.id_material = detalle.detalle_compra_material
+JOIN THIS_IS_FINE.tipo_material tipoMaterial ON tipoMaterial.tipo_material_id = material.material_tipo
+JOIN THIS_IS_FINE.BI_tipo_material BI_material ON BI_material.tipo_material = tipoMaterial.tipo_material_detalle
+JOIN THIS_IS_FINE.BI_tiempo ON YEAR(compra.compra_fecha) = tiempo_anio
+	AND THIS_IS_FINE.getCuatri(compra.compra_fecha) = tiempo_cuatrimestre AND MONTH(compra.compra_fecha) = tiempo_mes
+JOIN THIS_IS_FINE.Sucursal ON compra.compra_sucursal = sucursal_id
+JOIN THIS_IS_FINE.Localidad loc ON sucursal_localidad = loc.localidad_codigo
+JOIN THIS_IS_FINE.Provincia prov ON loc.localidad_provincia = prov.provincia_codigo
+JOIN THIS_IS_FINE.BI_ubicacion ON prov.provincia_detalle = ubicacion_provincia AND loc.localidad_detalle = ubicacion_localidad
+
+
+
+
 
 
 
