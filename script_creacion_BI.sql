@@ -375,7 +375,20 @@ JOIN THIS_IS_FINE.Provincia prov ON loc.localidad_provincia = prov.provincia_cod
 JOIN THIS_IS_FINE.BI_ubicacion ON prov.provincia_detalle = ubicacion_provincia AND loc.localidad_detalle = ubicacion_localidad
 
 
-
+INSERT INTO THIS_IS_FINE.BI_Hecho_Envio(
+    envio_tiempo_programado,
+	envio_tiempo_enviado,
+	envio_ubicacion,
+	envio_total)
+SELECT t1.tiempo_id
+       t2.tiempo_id
+	   ubicacion_id
+	   (envio_importe_traslado + envio_importe_subida) as envio_total
+FROM THIS_IS_FINE.Envio
+JOIN THIS_IS_FINE.BI_tiempo t1 ON YEAR(envio_fecha_programada) = tiempo_anio
+	AND THIS_IS_FINE.getCuatri(envio_fecha_programadao) = tiempo_cuatrimestre AND MONTH(envio_fecha_programada) = tiempo_mes
+JOIN THIS_IS_FINE.BI_tiempo t2 ON YEAR(envio_fecha) = tiempo_anio
+	AND THIS_IS_FINE.getCuatri(envio_fecha) = tiempo_cuatrimestre AND MONTH(envio_fecha) = tiempo_mes
 
 
 
