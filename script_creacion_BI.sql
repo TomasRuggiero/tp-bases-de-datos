@@ -258,6 +258,39 @@ BEGIN
 END;
 GO
 
+CREATE OR ALTER FUNCTION THIS_IS_FINE.getPorcentajePorEstado(@estado NVARCHAR(255))
+RETURNS NVARCHAR(50)
+AS
+BEGIN
+	DECLARE @cantidadPedidosTotales INT;
+	DECLARE @cantidadPedidosPorEstado INT;
+	DECLARE @porcentaje DECIMAL(5,2); -- ejemplo: 73.45
+	DECLARE @porcentajeTexto NVARCHAR(50);
+
+	SELECT @cantidadPedidosTotales = COUNT(DISTINCT pedido_codigo)
+	FROM THIS_IS_FINE.BI_Hecho_Pedido;
+
+	SELECT @cantidadPedidosPorEstado = COUNT(DISTINCT pedido_codigo)
+	FROM THIS_IS_FINE.BI_Hecho_Pedido
+	JOIN THIS_IS_FINE.BI_estado_pedido ON pedido_estado = estado_id
+	WHERE estado = @estado;
+
+	IF @cantidadPedidosTotales = 0
+	BEGIN
+		SET @porcentaje = 0;
+	END
+	ELSE
+	BEGIN
+		SET @porcentaje = 
+			CAST(@cantidadPedidosPorEstado AS DECIMAL(12,2)) * 100.0 / 
+			CAST(@cantidadPedidosTotales AS DECIMAL(12,2));
+	END
+
+	SET @porcentajeTexto = CAST(@porcentaje AS NVARCHAR(50)) + '%';
+
+	RETURN @porcentajeTexto;
+END
+
 --------  INSERCION DE DATOS  --------
 
 ----- INSERT UBICACIONES -----
@@ -318,6 +351,7 @@ FROM THIS_IS_FINE.Pedido
 
 ----- INSERT HECHO PEDIDO -----
 
+DELETE FROM THIS_IS_FINE.BI_Hecho_Pedido
 
 INSERT INTO THIS_IS_FINE.BI_Hecho_Pedido(
 	pedido_codigo, 
@@ -334,7 +368,7 @@ INSERT INTO THIS_IS_FINE.BI_Hecho_Pedido(
 )
 SELECT pedido.pedido_numero, ubicacion.ubicacion_id, 
 	tiempo.tiempo_id, rango.rango_etario_id, turno.turno_id, 
-	estado.estado_id, modelo.sillon_modelo_descripcion, detalle.pedido_det_cantidad,
+	estado.estado_id, BI_modelo.modelo_id, detalle.pedido_det_cantidad,
 	detalle.pedido_det_precio, detalle.pedido_det_subtotal, pedido.pedido_total
 
 FROM THIS_IS_FINE.Pedido pedido
@@ -342,6 +376,7 @@ JOIN THIS_IS_FINE.detalle_pedido detalle ON detalle.pedido_numero = pedido.pedid
 JOIN THIS_IS_FINE.Cliente cliente ON cliente.cliente_codigo = pedido.pedido_cliente
 JOIN THIS_IS_FINE.Sillon sillon ON detalle.sillon_id = sillon.sillon_id
 JOIN THIS_IS_FINE.sillon_modelo modelo ON sillon.sillon_modelo = modelo.sillon_modelo_codigo
+JOIN THIS_IS_FINE.BI_modelo_sillon BI_modelo ON modelo.sillon_modelo_descripcion = BI_modelo.modelo_descripcion
 JOIN THIS_IS_FINE.Sucursal sucursal ON sucursal.sucursal_id = pedido.pedido_sucursal
 JOIN THIS_IS_FINE.Localidad localidad ON sucursal_localidad = localidad.localidad_codigo
 JOIN THIS_IS_FINE.Provincia provincia ON localidad.localidad_provincia = provincia.provincia_codigo
@@ -414,7 +449,54 @@ AND localidad.localidad_detalle = ubicacion.ubicacion_localidad
 JOIN THIS_IS_FINE.detalle_factura dp ON factura_numero = dp.detalle_factura_numero
 JOIN THIS_IS_FINE.Sillon s ON dp.detalle_factura_sillon = s.sillon_id
 JOIN THIS_IS_FINE.sillon_modelo modelo ON s.sillon_modelo = modelo.sillon_modelo_codigo
-	   
+
+
+
+
+------  VISTAS  ------
+
+
+
+---- VISTA GANANCIAS ----
+
+
+
+
+---- VISTA 4: VOLUMEN DE PEDIDOS ----
+
+
+
+CREATE VIEW THIS_IS_FINE.Volumen_Pedidos AS 
+SELECT 
+	COUNT(DISTINCT pedido.pedido_codigo) AS Cantidad_Pedidos,
+	ubicacion.ubicacion_localidad AS sucursal_localidad,
+	ubicacion.ubicacion_provincia AS sucursal_provincia,
+	turno AS turno,
+	CAST(tiempo.tiempo_mes AS VARCHAR) + '-' + CAST(tiempo.tiempo_anio AS VARCHAR) AS [mes-año]
+FROM THIS_IS_FINE.BI_Hecho_Pedido pedido
+JOIN THIS_IS_FINE.BI_tiempo tiempo ON pedido.pedido_tiempo = tiempo.tiempo_id
+JOIN THIS_IS_FINE.BI_ubicacion ubicacion ON pedido.pedido_ubicacion = ubicacion.ubicacion_id
+JOIN THIS_IS_FINE.BI_rango_etario rangoEtario ON rangoEtario.rango_etario_id = pedido.pedido_rango_etario
+JOIN THIS_IS_FINE.BI_turno_ventas ON pedido.pedido_turno_ventas = turno_id
+GROUP BY ubicacion.ubicacion_localidad, ubicacion.ubicacion_provincia, turno, tiempo.tiempo_mes, tiempo.tiempo_anio
+
+---- VISTA 5: CONVERSION DE PEDIDOS ----
+
+CREATE VIEW THIS_IS_FINE.Conversion_Pedidos AS
+SELECT 
+	THIS_IS_FINE.getPorcentajePorEstado(estado.estado) AS porcentaje,
+	estado.estado AS estado,
+	tiempo_cuatrimestre AS cuatrimestre,
+	ubicacion.ubicacion_localidad AS sucursal_localidad,
+	ubicacion.ubicacion_provincia AS sucursal_provincia
+FROM THIS_IS_FINE.BI_Hecho_Pedido pedido
+JOIN THIS_IS_FINE.BI_estado_pedido estado ON estado.estado_id = pedido.pedido_estado
+JOIN THIS_IS_FINE.BI_tiempo tiempo ON pedido.pedido_tiempo = tiempo.tiempo_id
+JOIN THIS_IS_FINE.BI_ubicacion ubicacion ON ubicacion.ubicacion_id = pedido.pedido_ubicacion
+GROUP BY estado.estado, tiempo_cuatrimestre, ubicacion.ubicacion_localidad, ubicacion.ubicacion_provincia
+
+
+
 
 
 
