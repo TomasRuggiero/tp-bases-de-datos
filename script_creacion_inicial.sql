@@ -302,7 +302,7 @@ foreign key (compra_proveedor) references THIS_IS_FINE.Proveedor(proveedor_codig
 /* TABLAS INTERMEDIAS/HIJAS */
 
 CREATE TABLE THIS_IS_FINE.detalle_pedido (
-    -- Columnas FK
+    detalle_pedido_id INT IDENTITY(1,1),
     pedido_numero   decimal(18,0)   NOT NULL,
     sillon_id       INT          NOT NULL,
 
@@ -313,7 +313,7 @@ CREATE TABLE THIS_IS_FINE.detalle_pedido (
 
     -- PK compuesta
     CONSTRAINT PK_detalle_pedido
-      PRIMARY KEY (pedido_numero, sillon_id),
+      PRIMARY KEY (detalle_pedido_id),
 
  );
 GO
@@ -327,23 +327,24 @@ ADD constraint FK_Detalle_Pedido_Sillon
 foreign key (sillon_id) references THIS_IS_FINE.Sillon(sillon_id);
 
 create table THIS_IS_FINE.detalle_factura (
+	detalle_factura_id INT IDENTITY(1,1),
 	detalle_factura_numero bigint,--Fk a Factura
-	detalle_factura_pedido decimal(18,0), --FK a detalle_pedido
-	detalle_factura_sillon int, --FK a detalle_pedido
+	detalle_factura_pedido INT, --FK a detalle_pedido
+	--detalle_factura_sillon int, --FK a detalle_pedido
 	detalle_factura_precio decimal(18,2),
 	detalle_factura_cantidad decimal(18,0),
 	detalle_factura_subtotal decimal(18,2),
-	constraint PK_dettaleFactura primary key (detalle_factura_numero, detalle_factura_pedido, detalle_factura_sillon),
+	constraint PK_detalleFactura primary key (detalle_factura_id),
 )
+
 ALTER TABLE THIS_IS_FINE.detalle_factura
 ADD constraint FK_detalleFactura_Factura 
 foreign key (detalle_factura_numero) references THIS_IS_FINE.Factura(factura_numero);
 
 ALTER TABLE THIS_IS_FINE.detalle_factura
 ADD CONSTRAINT FK_detalle_factura_detalle_pedido
-FOREIGN KEY (detalle_factura_pedido, detalle_factura_sillon)
-REFERENCES THIS_IS_FINE.detalle_pedido(pedido_numero, sillon_id);
-
+FOREIGN KEY (detalle_factura_pedido)
+REFERENCES THIS_IS_FINE.detalle_pedido(detalle_pedido_id);
 
 create table THIS_IS_FINE.detalle_compra (
 	detalle_compra_numero decimal(18,0), -- FK a Compra
@@ -849,7 +850,7 @@ BEGIN
 END;
 GO
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_factura
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_factura
 AS
 BEGIN
 
@@ -883,30 +884,19 @@ BEGIN
 END;
 GO
 
-CREATE PROCEDURE THIS_IS_FINE.migrar_detalle_factura
+CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_detalle_factura
 AS
 BEGIN
     INSERT INTO THIS_IS_FINE.detalle_factura (
         detalle_factura_numero,
 	    detalle_factura_pedido,
-		detalle_factura_sillon,
 	    detalle_factura_precio,
 	    detalle_factura_cantidad,
 	    detalle_factura_subtotal
     )
     SELECT 
     factura.factura_numero,
-    p.pedido_Numero,
-    (
-        SELECT TOP 1 sillon_id
-        FROM gd_esquema.Maestra m2
-		JOIN THIS_IS_FINE.Sillon s on s.sillon_codigo=m2.Sillon_Codigo and s.sillon_modelo=m2.Sillon_Modelo_Codigo
-        WHERE m2.pedido_numero = maestra.Pedido_Numero
-          AND m2.Detalle_Pedido_SubTotal = maestra.Detalle_Pedido_SubTotal
-          AND m2.Sillon_Codigo IS NOT NULL
-          AND m2.Sillon_Modelo_Codigo IS NOT NULL
-        ORDER BY m2.Sillon_Codigo
-    ) AS sillon_codigo,
+    detalle.detalle_pedido_id,
     maestra.Detalle_Factura_Precio,
     maestra.Detalle_Factura_Cantidad,
     maestra.Detalle_Factura_SubTotal
@@ -915,10 +905,15 @@ BEGIN
 		ON factura.factura_numero = maestra.Factura_Numero
 	JOIN THIS_IS_FINE.Pedido p
 		ON p.pedido_numero = maestra.pedido_numero
+	JOIN THIS_IS_FINE.detalle_pedido detalle
+		ON detalle.pedido_numero = p.pedido_numero
 	WHERE maestra.Detalle_Factura_SubTotal IS NOT NULL
 END;
 GO
 
+
+
+SELECT * FROM THIS_IS_FINE.detalle_factura
 -- select * from THIS_IS_FINE.detalle_pedido
 
 -- select maestra.Pedido_Numero, Sillon_Modelo_Codigo, Detalle_Pedido_SubTotal from gd_esquema.Maestra as maestra
@@ -1105,10 +1100,8 @@ exec THIS_IS_FINE.migrar_detalle_pedido;
 exec THIS_IS_FINE.migrar_detalle_factura;
 exec THIS_IS_FINE.migrar_detalle_compra;
 exec THIS_IS_FINE.migrar_sillon_material;
-
 GO
-
-                       /*CREACIÓN DE ÍNDICES*/
+/*CREACIÓN DE ÍNDICES*/
 
         /* ÍNDICES PARA BÚSQUEDAS POR NOMBRES O CÓDIGOS EN TABLAS DE DATOS MAESTROS*/
 /* PARA CLIENTES */
