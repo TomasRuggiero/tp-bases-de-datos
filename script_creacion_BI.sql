@@ -126,7 +126,7 @@ CREATE TABLE THIS_IS_FINE.BI_Hecho_Pedido(
 	pedido_rango_etario INT,
 	pedido_turno_ventas INT,
 	pedido_estado INT,
-	pedido_modelo_sillon INT,
+	pedido_modelo_sillon int,
 	pedido_cantidad_sillon INT,
 	pedido_sillon_precio DECIMAL(18,2),
 	pedido_subtotal BIGINT,
@@ -203,12 +203,13 @@ CREATE TABLE THIS_IS_FINE.BI_Hecho_Compra (
 )
 
 ---- LO DEJO POR SI YA TIENEN CARGADA LA TABLA COMO ESTABA ANTES (SIN CANTIDAD)
-ALTER TABLE THIS_IS_FINE.BI_Hecho_Compra
-ADD compra_cantidad DECIMAL(18,0)
+-- ALTER TABLE THIS_IS_FINE.BI_Hecho_Compra
+-- ADD compra_cantidad DECIMAL(18,0)
+GO
 
 --------  FUNCIONES  --------
 
-CREATE FUNCTION THIS_IS_FINE.rangoEtario (@Fecha_Nacimiento DATE)
+CREATE or alter FUNCTION THIS_IS_FINE.rangoEtario (@Fecha_Nacimiento DATE)
 RETURNS nvarchar(50)
 AS
 BEGIN
@@ -230,7 +231,7 @@ BEGIN
 END;
 GO
 
-CREATE FUNCTION  THIS_IS_FINE.getCuatri (@Fecha DATE)
+CREATE or alter FUNCTION THIS_IS_FINE.getCuatri (@Fecha DATE)
 RETURNS SMALLINT
 AS BEGIN
 	DECLARE @Cuatrimestre SMALLINT
@@ -246,7 +247,7 @@ AS BEGIN
 END
 GO
 
-CREATE FUNCTION  THIS_IS_FINE.getRangoHorario (@Hora TIME)
+CREATE or alter FUNCTION THIS_IS_FINE.getRangoHorario (@Hora TIME)
 RETURNS nvarchar(50)
 AS
 BEGIN
@@ -290,6 +291,7 @@ BEGIN
 
 	RETURN @porcentajeTexto;
 END
+GO
 
 --------  INSERCION DE DATOS  --------
 
@@ -335,13 +337,15 @@ INSERT INTO THIS_IS_FINE.BI_tipo_material (tipo_material)
 SELECT tipo_material_detalle
 FROM THIS_IS_FINE.tipo_material
 
-
+SELECT * FROM THIS_IS_FINE.BI_tipo_material
 
 ----- INSERT SILLON MODELO  -----
 
 INSERT INTO THIS_IS_FINE.BI_modelo_sillon (modelo_descripcion)
 SELECT sillon_modelo_descripcion
 FROM THIS_IS_FINE.sillon_modelo
+
+select * from THIS_IS_FINE.BI_modelo_sillon
 
 ----- INSERT ESTADO PEDIDO -----
 
@@ -463,45 +467,77 @@ JOIN THIS_IS_FINE.sillon_modelo modelo ON s.sillon_modelo = modelo.sillon_modelo
 
 ------  VISTAS  ------
 
-
-
 ---- VISTA GANANCIAS ----
 
+CREATE or alter VIEW THIS_IS_FINE.BI_Ganancias AS
+SELECT 
+    t.tiempo_anio as anio,
+    t.tiempo_mes as mes,
+    u.ubicacion_localidad as sucursal_localidad,
+    u.ubicacion_provincia as sucursal_provincia,
+    ISNULL(SUM(p.pedido_precio_total), 0) - ISNULL(SUM(c.compra_total), 0) AS ganancia
+FROM THIS_IS_FINE.BI_tiempo t
+JOIN THIS_IS_FINE.BI_Hecho_Pedido p
+    ON p.pedido_tiempo = t.tiempo_id
+JOIN THIS_IS_FINE.BI_ubicacion u
+    ON p.pedido_ubicacion = u.ubicacion_id
+LEFT JOIN THIS_IS_FINE.BI_Hecho_Compra c
+    ON c.compra_tiempo = t.tiempo_id
+    AND c.compra_ubicacion = u.ubicacion_id
+GROUP BY 
+    t.tiempo_anio,
+    t.tiempo_mes,
+    u.ubicacion_localidad,
+    u.ubicacion_provincia;
+GO
 
+select * from THIS_IS_FINE.BI_Ganancias
+GO
+
+--- Vista 2 ----
+CREATE or ALTER VIEW THIS_IS_FINE.BI_FacturaPromedioMensual AS
+SELECT
+    t.tiempo_anio AS anio,
+    t.tiempo_cuatrimestre AS cuatrimestre,
+    u.ubicacion_provincia AS provincia,
+    AVG(p.pedido_precio_total) AS factura_promedio
+FROM THIS_IS_FINE.BI_Hecho_Pedido p
+JOIN THIS_IS_FINE.BI_tiempo t ON p.pedido_tiempo = t.tiempo_id
+JOIN THIS_IS_FINE.BI_ubicacion u ON p.pedido_ubicacion = u.ubicacion_id
+GROUP BY
+    t.tiempo_anio,
+    t.tiempo_cuatrimestre,
+    u.ubicacion_provincia;
+GO
+
+select * from THIS_IS_FINE.BI_FacturaPromedioMensual
 
 
 ---- VISTA 4: VOLUMEN DE PEDIDOS ----
 
+SELECT * FROM THIS_IS_FINE.BI_Hecho_Pedido
+GO
 
-
-CREATE VIEW THIS_IS_FINE.Volumen_Pedidos AS 
+CREATE or alter VIEW THIS_IS_FINE.Volumen_Pedidos AS 
 SELECT 
 	COUNT(DISTINCT pedido.pedido_codigo) AS Cantidad_Pedidos,
 	ubicacion.ubicacion_localidad AS sucursal_localidad,
 	ubicacion.ubicacion_provincia AS sucursal_provincia,
 	turno AS turno,
-	CAST(tiempo.tiempo_mes AS VARCHAR) + '-' + CAST(tiempo.tiempo_anio AS VARCHAR) AS [mes-año]
+	CAST(tiempo.tiempo_mes AS VARCHAR) + '-' + CAST(tiempo.tiempo_anio AS VARCHAR) AS [mes-aï¿½o]
 FROM THIS_IS_FINE.BI_Hecho_Pedido pedido
 JOIN THIS_IS_FINE.BI_tiempo tiempo ON pedido.pedido_tiempo = tiempo.tiempo_id
 JOIN THIS_IS_FINE.BI_ubicacion ubicacion ON pedido.pedido_ubicacion = ubicacion.ubicacion_id
 JOIN THIS_IS_FINE.BI_rango_etario rangoEtario ON rangoEtario.rango_etario_id = pedido.pedido_rango_etario
 JOIN THIS_IS_FINE.BI_turno_ventas ON pedido.pedido_turno_ventas = turno_id
 GROUP BY ubicacion.ubicacion_localidad, ubicacion.ubicacion_provincia, turno, tiempo.tiempo_mes, tiempo.tiempo_anio
+GO
 
----- VISTA 5: CONVERSION DE PEDIDOS ----
+select * from THIS_IS_FINE.Volumen_Pedidos
 
-CREATE VIEW THIS_IS_FINE.Conversion_Pedidos AS
-SELECT 
-	THIS_IS_FINE.getPorcentajePorEstado(estado.estado) AS porcentaje,
-	estado.estado AS estado,
-	tiempo_cuatrimestre AS cuatrimestre,
-	ubicacion.ubicacion_localidad AS sucursal_localidad,
-	ubicacion.ubicacion_provincia AS sucursal_provincia
-FROM THIS_IS_FINE.BI_Hecho_Pedido pedido
-JOIN THIS_IS_FINE.BI_estado_pedido estado ON estado.estado_id = pedido.pedido_estado
-JOIN THIS_IS_FINE.BI_tiempo tiempo ON pedido.pedido_tiempo = tiempo.tiempo_id
-JOIN THIS_IS_FINE.BI_ubicacion ubicacion ON ubicacion.ubicacion_id = pedido.pedido_ubicacion
-GROUP BY estado.estado, tiempo_cuatrimestre, ubicacion.ubicacion_localidad, ubicacion.ubicacion_provincia
+
+
+
 
 
 
