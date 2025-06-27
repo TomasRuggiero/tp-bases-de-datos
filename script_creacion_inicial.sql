@@ -895,11 +895,11 @@ BEGIN
 	    detalle_factura_subtotal
     )
     SELECT 
-    factura.factura_numero,
-    detalle.detalle_pedido_id,
-    maestra.Detalle_Factura_Precio,
-    maestra.Detalle_Factura_Cantidad,
-    maestra.Detalle_Factura_SubTotal
+   factura.factura_numero,
+   detalle.detalle_pedido_id,
+   maestra.Detalle_Factura_Precio,
+   maestra.Detalle_Factura_Cantidad,
+   maestra.Detalle_Factura_SubTotal
 	FROM gd_esquema.Maestra maestra
 	JOIN THIS_IS_FINE.Factura factura 
 		ON factura.factura_numero = maestra.Factura_Numero
@@ -908,12 +908,12 @@ BEGIN
 	JOIN THIS_IS_FINE.detalle_pedido detalle
 		ON detalle.pedido_numero = p.pedido_numero
 	WHERE maestra.Detalle_Factura_SubTotal IS NOT NULL
+
 END;
 GO
 
 
 
-SELECT * FROM THIS_IS_FINE.detalle_factura
 -- select * from THIS_IS_FINE.detalle_pedido
 
 -- select maestra.Pedido_Numero, Sillon_Modelo_Codigo, Detalle_Pedido_SubTotal from gd_esquema.Maestra as maestra
