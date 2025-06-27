@@ -409,6 +409,7 @@ JOIN THIS_IS_FINE.Localidad loc ON sucursal_localidad = loc.localidad_codigo
 JOIN THIS_IS_FINE.Provincia prov ON loc.localidad_provincia = prov.provincia_codigo
 JOIN THIS_IS_FINE.BI_ubicacion ON prov.provincia_detalle = ubicacion_provincia AND loc.localidad_detalle = ubicacion_localidad
 
+---- INSERT HECHO ENVIO ----
 
 INSERT INTO THIS_IS_FINE.BI_Hecho_Envio(
     envio_tiempo_programado,
@@ -424,6 +425,13 @@ JOIN THIS_IS_FINE.BI_tiempo t1 ON YEAR(envio_fecha_programada) = t1.tiempo_anio
 	AND THIS_IS_FINE.getCuatri(envio_fecha_programada) = t1.tiempo_cuatrimestre AND MONTH(envio_fecha_programada) = t1.tiempo_mes
 JOIN THIS_IS_FINE.BI_tiempo t2 ON YEAR(envio_fecha) = t2.tiempo_anio
 	AND THIS_IS_FINE.getCuatri(envio_fecha) = t2.tiempo_cuatrimestre AND MONTH(envio_fecha) = t2.tiempo_mes
+JOIN THIS_IS_FINE.Factura f on f.factura_numero = envio_factura_numero
+JOIN THIS_IS_FINE.Cliente c on c.cliente_codigo = f.factura_cliente
+JOIN THIS_IS_FINE.Localidad loc ON cliente_localidad = loc.localidad_codigo
+JOIN THIS_IS_FINE.Provincia prov ON loc.localidad_provincia = prov.provincia_codigo
+JOIN THIS_IS_FINE.BI_ubicacion ON prov.provincia_detalle = ubicacion_provincia AND loc.localidad_detalle = ubicacion_localidad
+
+---- INSERT HECHO VENTA -----
 
 INSERT INTO THIS_IS_FINE.BI_Hecho_Venta(
     venta_factura, 
@@ -494,9 +502,6 @@ JOIN THIS_IS_FINE.BI_estado_pedido estado ON estado.estado_id = pedido.pedido_es
 JOIN THIS_IS_FINE.BI_tiempo tiempo ON pedido.pedido_tiempo = tiempo.tiempo_id
 JOIN THIS_IS_FINE.BI_ubicacion ubicacion ON ubicacion.ubicacion_id = pedido.pedido_ubicacion
 GROUP BY estado.estado, tiempo_cuatrimestre, ubicacion.ubicacion_localidad, ubicacion.ubicacion_provincia
-
-
-
 
 
 
