@@ -1,4 +1,7 @@
-/* SCRIPT TP GDD MIGRACION DE DATOS */ 
+
+
+/* TABLAS COMPLETAMENTE INDEPENDIENTES -- SIN FKs */
+/* SCRIPT TP GDD MIGRACION DE DATOS */ More actions
 
 use GD1C2025;
 GO
@@ -11,6 +14,7 @@ END;
 GO
 
 /* DROPEO las tablas para crear correctamente las PKs */
+
 
 -- Tablas hijas
 DROP TABLE IF EXISTS THIS_IS_FINE.detalle_factura;
@@ -47,7 +51,7 @@ DROP PROCEDURE IF EXISTS  THIS_IS_FINE.migrar_sillon_modelo;
 DROP PROCEDURE IF EXISTS  THIS_IS_FINE.migrar_sillon_medida;
 DROP PROCEDURE IF EXISTS  THIS_IS_FINE.migrar_tipo_material;
 DROP PROCEDURE IF EXISTS  THIS_IS_FINE.migrar_localidad;
-DROP PROCEDURE IF EXISTS  THIS_IS_FINE.migrar_cliente
+DROP PROCEDURE IF EXISTS  THIS_IS_FINE.migrar_cliente;
 DROP PROCEDURE IF EXISTS  THIS_IS_FINE.migrar_proveedor;
 DROP PROCEDURE IF EXISTS  THIS_IS_FINE.migrar_sucursal;
 DROP PROCEDURE IF EXISTS  THIS_IS_FINE.migrar_sillon;
@@ -64,6 +68,13 @@ DROP PROCEDURE IF EXISTS  THIS_IS_FINE.migrar_detalle_pedido;
 DROP PROCEDURE IF EXISTS  THIS_IS_FINE.migrar_detalle_factura;
 DROP PROCEDURE IF EXISTS  THIS_IS_FINE.migrar_detalle_compra;
 DROP PROCEDURE IF EXISTS  THIS_IS_FINE.migrar_sillon_material;
+
+DROP PROCEDURE IF EXISTS THIS_IS_FINE.migrar_Facturas;
+DROP PROCEDURE IF EXISTS THIS_IS_FINE.migrar_localidades_cliente;
+DROP PROCEDURE IF EXISTS THIS_IS_FINE.migrar_localidades_proveedor;
+DROP PROCEDURE IF EXISTS THIS_IS_FINE.migrar_localidades_sucursal;
+
+
 
 /* TABLAS COMPLETAMENTE INDEPENDIENTES -- SIN FKs */
 
@@ -378,6 +389,7 @@ ADD constraint FK_Sillon
 foreign key (sillon_id) references THIS_IS_FINE.Sillon(sillon_id);
 GO
 
+
       --------------   MIGRACIONES   -------------- 
 
 /*Insertar Sill�n Modelo de la tabla maestra a tabla modelo_sillon*/
@@ -536,7 +548,7 @@ BEGIN
    exec THIS_IS_FINE.migrar_localidades_proveedor; 
    exec THIS_IS_FINE.migrar_localidades_sucursal; 
    exec THIS_IS_FINE.migrar_localidades_cliente;
-     
+
 END;
 GO
 
@@ -633,7 +645,7 @@ AS
 BEGIN
 
 	SET NOCOUNT ON;
-	
+
 	INSERT INTO THIS_IS_FINE.detalle_pedido (
 		pedido_numero,
 		sillon_id,
@@ -894,28 +906,51 @@ BEGIN
 	    detalle_factura_cantidad,
 	    detalle_factura_subtotal
     )
-    SELECT
+    SELECT 
         factura.factura_numero,
-        dp.pedido_Numero,
-		dp.sillon_id,
+        p.pedido_Numero,
+		(select Sillon_Modelo_Codigo from gd_esquema.Maestra m2 where sillon_modelo is not null and m2.pedido_numero=maestra.Pedido_Numero and m2.Detalle_Pedido_SubTotal=maestra.Detalle_Pedido_SubTotal group by m2.sillon_modelo_codigo, m2.Pedido_Numero),
         maestra.Detalle_Factura_Precio,
         maestra.Detalle_Factura_Cantidad,
         maestra.Detalle_Factura_SubTotal
     FROM gd_esquema.Maestra maestra
     JOIN THIS_IS_FINE.Factura factura 
 	ON factura.factura_numero = maestra.Factura_Numero
+    factura.factura_numero,
+    p.pedido_Numero,
+    (
+        SELECT TOP 1 sillon_id
+        FROM gd_esquema.Maestra m2
+		JOIN THIS_IS_FINE.Sillon s on s.sillon_codigo=m2.Sillon_Codigo and s.sillon_modelo=m2.Sillon_Modelo_Codigo
+        WHERE m2.pedido_numero = maestra.Pedido_Numero
+          AND m2.Detalle_Pedido_SubTotal = maestra.Detalle_Pedido_SubTotal
+          AND m2.Sillon_Codigo IS NOT NULL
+          AND m2.Sillon_Modelo_Codigo IS NOT NULL
+        ORDER BY m2.Sillon_Codigo
+    ) AS sillon_codigo,
+    maestra.Detalle_Factura_Precio,
+    maestra.Detalle_Factura_Cantidad,
+    maestra.Detalle_Factura_SubTotal
+	FROM gd_esquema.Maestra maestra
+	JOIN THIS_IS_FINE.Factura factura 
+		ON factura.factura_numero = maestra.Factura_Numero
 	JOIN THIS_IS_FINE.Pedido p
 		ON p.pedido_numero  = maestra.pedido_numero
-		JOIN THIS_IS_FINE.Sillon s
-		ON s.sillon_codigo = maestra.sillon_codigo 
-		AND s.sillon_modelo = maestra.Sillon_Modelo_Codigo 
-    JOIN THIS_IS_FINE.detalle_pedido dp 
-	ON dp.pedido_numero = p.pedido_numero
-	AND dp.sillon_id = s.sillon_id
-   
+		ON p.pedido_numero = maestra.pedido_numero
+	WHERE maestra.Detalle_Factura_SubTotal IS NOT NULL
 END;
 GO
 
+-- select * from THIS_IS_FINE.detalle_pedido
+
+-- select maestra.Pedido_Numero, Sillon_Modelo_Codigo, Detalle_Pedido_SubTotal from gd_esquema.Maestra as maestra
+-- where maestra.Pedido_Numero='56360503'
+-- group by sillon_modelo_codigo, maestra.pedido_numero, Detalle_Pedido_SubTotal
+
+-- select * from gd_esquema.Maestra where Detalle_Pedido_Cantidad is not Null and Detalle_Factura_Cantidad is not NULL
+-- select * from gd_esquema.Maestra where Pedido_Numero='56360503'
+
+go
 /*Migración de Proveedor*/
 
 CREATE PROCEDURE THIS_IS_FINE.migrar_proveedor
@@ -1069,13 +1104,14 @@ BEGIN
 END;
 GO
 
+
 /* EJECUCIÓN DE LOS PROCEDURES EN ORDEN CORRESPONDIENTE */
 exec THIS_IS_FINE.migrar_provincia;
 exec THIS_IS_FINE.migrar_sillon_modelo;
 exec THIS_IS_FINE.migrar_sillon_medida;
 exec THIS_IS_FINE.migrar_tipo_material;
 exec THIS_IS_FINE.migrar_localidad;
-exec THIS_IS_FINE.migrar_cliente
+exec THIS_IS_FINE.migrar_cliente;
 exec THIS_IS_FINE.migrar_proveedor;
 exec THIS_IS_FINE.migrar_sucursal;
 exec THIS_IS_FINE.migrar_sillon;
@@ -1152,14 +1188,6 @@ CREATE INDEX IX_Tela_Color ON THIS_IS_FINE.Tela(tela_color);
 CREATE INDEX IX_Tela_Textura ON THIS_IS_FINE.Tela(tela_textura);
 CREATE INDEX IX_Relleno_Densidad ON THIS_IS_FINE.Relleno(relleno_densidad);
 
-
-
-
-
-
-
-
-
 -- USE GD1C2025;
 -- GO
 
@@ -1174,3 +1202,7 @@ CREATE INDEX IX_Relleno_Densidad ON THIS_IS_FINE.Relleno(relleno_densidad);
 -- -- 2) Ejecuto el batch que borrará todos esos procedimientos
 -- EXEC sp_executesql @sql;
 -- GO
+
+
+
+
