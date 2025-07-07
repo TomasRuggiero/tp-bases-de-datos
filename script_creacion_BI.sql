@@ -213,7 +213,7 @@ CREATE TABLE THIS_IS_FINE.BI_Hecho_Compra (
 --D compra_cantidad DECIMAL(18,0)
 
 --------  FUNCIONES  --------
-
+GO
 CREATE OR ALTER FUNCTION THIS_IS_FINE.rangoEtario (@Fecha_Nacimiento DATE)
 RETURNS nvarchar(50)
 AS
@@ -252,7 +252,7 @@ AS BEGIN
 END
 GO
 
-CREATE OR ALTER   THIS_IS_FINE.getRangoHorario (@Hora TIME)
+CREATE OR ALTER  FUNCTION THIS_IS_FINE.getRangoHorario (@Hora TIME)
 RETURNS nvarchar(50)
 AS
 BEGIN
@@ -264,6 +264,7 @@ BEGIN
 END;
 GO
 
+GO
 CREATE OR ALTER FUNCTION THIS_IS_FINE.getPorcentajePorEstado(@estado NVARCHAR(255))
 RETURNS NVARCHAR(50)
 AS
@@ -297,6 +298,7 @@ BEGIN
 	RETURN @porcentajeTexto;
 END
 
+GO
 CREATE OR ALTER FUNCTION THIS_IS_FINE.getPorcentajeEnvios(
      @anio INT,
 	 @mes INT
@@ -334,6 +336,7 @@ BEGIN
 END
 GO
 
+GO
 CREATE OR ALTER FUNCTION THIS_IS_FINE.getTiempoPromedioFabricacion(
       @ubicacion_id INT,
 	  @anio INT,
@@ -351,8 +354,10 @@ BEGIN
 	  FROM THIS_IS_FINE.BI_Hecho_Pedido pedido
 	  JOIN THIS_IS_FINE.BI_tiempo tiempo_pedido
 	      ON pedido.pedido_tiempo = tiempo_pedido.tiempo_id
+      JOIN THIS_IS_FINE.detalle_pedido dp
+	      ON dp.pedido_numero = pedido.pedido_codigo
       JOIN THIS_IS_FINE.detalle_factura df
-	      ON df.detalle_factura_pedido = pedido.pedido_codigo
+	      ON df.detalle_factura_pedido = dp.detalle_pedido_id
       JOIN THIS_IS_FINE.BI_Hecho_Venta venta
 	      ON venta.venta_factura = df.detalle_factura_numero
       JOIN THIS_IS_FINE.BI_tiempo tiempo_factura
@@ -363,8 +368,8 @@ BEGIN
 
       RETURN @promedio
 END;
+GO
 
-SELECT * FROM THIS_IS_FINE.BI_Hecho_Venta
 GO
 --------  INSERCION DE DATOS  --------
 
@@ -541,10 +546,10 @@ GROUP BY ubicacion_id, tiempo_id, BI_sillon.modelo_id, rango_etario.rango_etario
 
 ------  VISTAS  ------
 
-DELETE FROM THIS_IS_FINE.BI_Hecho_Venta
+--DELETE FROM THIS_IS_FINE.BI_Hecho_Venta
 
 ---- VISTA 1: GANANCIAS----
-
+GO
 CREATE OR alter VIEW THIS_IS_FINE.BI_Ganancias AS
 SELECT 
     t.tiempo_anio as anio,
@@ -567,7 +572,6 @@ GROUP BY
     u.ubicacion_provincia;
 GO
 
-select * from THIS_IS_FINE.BI_Ganancias
 GO
 
 --- Vista 2 ----
@@ -587,6 +591,7 @@ GROUP BY
 GO
 
 ---- VISTA 3: RENDIMIENTO DE MODELOS ----
+GO
 CREATE OR ALTER VIEW THIS_IS_FINE.BI_Rendimiento_Modelos 
 AS
 SELECT 
@@ -612,7 +617,7 @@ GROUP BY ubicacion.ubicacion_localidad,tiempo.tiempo_cuatrimestre, tiempo.tiempo
 
 ---- VISTA 4: VOLUMEN DE PEDIDOS ----
 
-
+GO
 CREATE OR ALTER VIEW THIS_IS_FINE.Volumen_Pedidos AS 
 SELECT 
 	COUNT(DISTINCT pedido.pedido_codigo) AS Cantidad_Pedidos,
@@ -628,7 +633,7 @@ JOIN THIS_IS_FINE.BI_turno_ventas ON pedido.pedido_turno_ventas = turno_id
 GROUP BY ubicacion.ubicacion_localidad, ubicacion.ubicacion_provincia, turno, tiempo.tiempo_mes, tiempo.tiempo_anio
 
 ---- VISTA 5: CONVERSION DE PEDIDOS ----
-
+GO
 CREATE OR ALTER VIEW THIS_IS_FINE.Conversion_Pedidos AS
 SELECT 
 	THIS_IS_FINE.getPorcentajePorEstado(estado.estado) AS porcentaje,
@@ -643,7 +648,7 @@ JOIN THIS_IS_FINE.BI_ubicacion ubicacion ON ubicacion.ubicacion_id = pedido.pedi
 GROUP BY estado.estado, tiempo_cuatrimestre, ubicacion.ubicacion_localidad, ubicacion.ubicacion_provincia
 
 ---- VISTA 6: TIEMPO PROMEDIO DE FABRICACIÓN ----
-
+GO
 CREATE OR ALTER VIEW THIS_IS_FINE.PromedioTiempoFabriacion AS
 SELECT 
     u.ubicacion_localidad AS sucursal_localidad,
@@ -657,9 +662,12 @@ CROSS JOIN (
      SELECT DISTINCT tiempo_anio, tiempo_cuatrimestre
 	 FROM THIS_IS_FINE.BI_tiempo
 )t
+WHERE THIS_IS_FINE.getTiempoPromedioFabricacion(u.ubicacion_id, t.tiempo_anio, t.tiempo_cuatrimestre) IS NOT NULL
+GO
 
+GO
 ---- VISTA 7: PROMEDIO DE COMPRAS ----
-
+GO
 CREATE OR ALTER VIEW THIS_IS_FINE.v_promedio_compras_mensual AS
 SELECT
     tiempo.tiempo_anio AS anio,
@@ -670,7 +678,7 @@ JOIN THIS_IS_FINE.BI_tiempo tiempo ON compra.compra_tiempo = tiempo.tiempo_id
 GROUP BY tiempo.tiempo_anio, tiempo.tiempo_mes;
 
 ---- VISTA 8: COMPRA POR TIPO DE MATERIAL ----
-
+GO
 CREATE OR ALTER VIEW THIS_IS_FINE.VW_compra_tipo_material_ubicacion_cuatrimestre AS
 SELECT 
     tipo_material.tipo_material,
@@ -691,7 +699,7 @@ GROUP BY
     tiempo.tiempo_cuatrimestre;
 
 ---- VISTA 9: PORCENTAJE DE CUMPLIMIENTO DE ENVÍOS -----
-
+GO
 CREATE OR ALTER VIEW THIS_IS_FINE.Porcentaje_Cumplimiento_Envios AS
 SELECT
     DISTINCT
@@ -702,7 +710,7 @@ FROM THIS_IS_FINE.BI_tiempo t
 JOIN THIS_IS_FINE.BI_Hecho_Envio e ON e.envio_tiempo_programado = t.tiempo_id
 
 ---- VISTA 10: LOCALIDADES QUE PAGAN MAYOR COSTO DE ENVIO -----     
-
+GO
 CREATE OR ALTER VIEW THIS_IS_FINE.Envio_Localidad AS
 SELECT TOP 3 
 	u.ubicacion_localidad AS localidad,
@@ -713,7 +721,7 @@ JOIN THIS_IS_FINE.BI_ubicacion u ON e.envio_ubicacion = u.ubicacion_id
 GROUP BY u.ubicacion_localidad, u.ubicacion_provincia
 ORDER BY promedio_costo_envio DESC
 
-SELECT * FROM THIS_IS_FINE.
+GO
 
 
 
