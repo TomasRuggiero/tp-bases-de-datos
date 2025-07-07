@@ -3,6 +3,10 @@
 use GD1C2025;
 GO
 
+SELECT * FROM THIS_IS_FINE.detalle_factura
+SELECT * FROM THIS_IS_FINE.detalle_pedido
+
+
 
 IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'THIS_IS_FINE')
 BEGIN
@@ -328,9 +332,8 @@ foreign key (sillon_id) references THIS_IS_FINE.Sillon(sillon_id);
 
 create table THIS_IS_FINE.detalle_factura (
 	detalle_factura_id INT IDENTITY(1,1),
-	detalle_factura_numero bigint,--Fk a Factura
-	detalle_factura_pedido INT, --FK a detalle_pedido
-	--detalle_factura_sillon int, --FK a detalle_pedido
+	detalle_factura_numero bigint,
+	detalle_factura_pedido INT,
 	detalle_factura_precio decimal(18,2),
 	detalle_factura_cantidad decimal(18,0),
 	detalle_factura_subtotal decimal(18,2),
@@ -894,12 +897,12 @@ BEGIN
 	    detalle_factura_cantidad,
 	    detalle_factura_subtotal
     )
-    SELECT 
+    SELECT DISTINCT
     factura.factura_numero,
     detalle.detalle_pedido_id,
-    maestra.Detalle_Factura_Precio,
-    maestra.Detalle_Factura_Cantidad,
-    maestra.Detalle_Factura_SubTotal
+	detalle.pedido_det_precio,
+    detalle.pedido_det_cantidad,
+    detalle.pedido_det_subtotal
 	FROM gd_esquema.Maestra maestra
 	JOIN THIS_IS_FINE.Factura factura 
 		ON factura.factura_numero = maestra.Factura_Numero
@@ -907,10 +910,9 @@ BEGIN
 		ON p.pedido_numero = maestra.pedido_numero
 	JOIN THIS_IS_FINE.detalle_pedido detalle
 		ON detalle.pedido_numero = p.pedido_numero
-	WHERE maestra.Detalle_Factura_SubTotal IS NOT NULL
+	WHERE maestra.Detalle_Factura_SubTotal IS NOT NULL AND maestra.Pedido_Estado = 'ENTREGADO'
 END;
 GO
-
 
 
 SELECT * FROM THIS_IS_FINE.detalle_factura

@@ -4,6 +4,8 @@
 
 use GD1C2025
 
+SELECT * FROM THIS_IS_FINE.
+
 IF OBJECT_ID('THIS_IS_FINE.BI_Hecho_Envio', 'U') IS NOT NULL
     DROP TABLE THIS_IS_FINE.BI_Hecho_Envio;
 
@@ -119,15 +121,13 @@ CREATE TABLE THIS_IS_FINE.BI_estado_pedido(
 ---- HECHOS ----
 
 CREATE TABLE THIS_IS_FINE.BI_Hecho_Pedido(
-	pedido_id INT IDENTITY(1,1),
-	pedido_codigo decimal(18,0),
-	pedido_ubicacion INT,
-	pedido_tiempo INT,
-	pedido_rango_etario INT,
+	hecho_pedido_ubicacion INT,
+	hecho_pedido_tiempo INT,
+	--hecho_pedido_rango_etario INT, Me parece que no va
 	pedido_turno_ventas INT,
 	pedido_estado INT,
 	pedido_modelo_sillon INT,
-	pedido_cantidad_sillon INT,
+	pedido_cantidad_sillones INT,
 	pedido_sillon_precio DECIMAL(18,2),
 	pedido_subtotal BIGINT,
 	pedido_precio_total DECIMAL(18,2),
@@ -147,25 +147,28 @@ CREATE TABLE THIS_IS_FINE.BI_Hecho_Pedido(
 	CONSTRAINT FK_Hecho_Pedido_modelo_sillon FOREIGN KEY (pedido_modelo_sillon)
 		REFERENCES THIS_IS_FINE.BI_modelo_sillon (modelo_id)
 )
+use GD1C2025
+
 
 CREATE TABLE THIS_IS_FINE.BI_Hecho_Venta(
-	venta_id INT IDENTITY(1,1),
-	venta_factura INT, 
-	venta_ubicacion INT,
-	venta_tiempo INT,
-	venta_modelo_sillon INT,
-	venta_cantidad INT,
-	venta_total decimal(18,2),
-	venta_rango_etario INT
+	hecho_venta_id INT IDENTITY(1,1),
+	ubicacion INT,
+	tiempo INT,
+	modelo_sillon INT,
+	rango_etario INT,
 
-	CONSTRAINT PK_Hecho_Venta PRIMARY KEY (venta_id)
-	CONSTRAINT FK_Hecho_Venta_ubicacion FOREIGN KEY (venta_ubicacion)
+	cantidad_ventas INT,
+	importe_promedio decimal(18,2),
+	total_vendido decimal(18,2),
+
+	CONSTRAINT PK_Hecho_Venta PRIMARY KEY (hecho_venta_id),
+	CONSTRAINT FK_Hecho_Venta_ubicacion FOREIGN KEY (ubicacion)
 		REFERENCES THIS_IS_FINE.BI_ubicacion (ubicacion_id),
-	CONSTRAINT FK_Hecho_Venta_tiempo FOREIGN KEY (venta_tiempo)
+	CONSTRAINT FK_Hecho_Venta_tiempo FOREIGN KEY (tiempo)
 		REFERENCES THIS_IS_FINE.BI_tiempo (tiempo_id),
-	CONSTRAINT FK_Hecho_Venta_modelo_sillon FOREIGN KEY (venta_modelo_sillon)
+	CONSTRAINT FK_Hecho_Venta_modelo_sillon FOREIGN KEY (modelo_sillon)
 		REFERENCES THIS_IS_FINE.BI_modelo_sillon (modelo_id),
-	CONSTRAINT FK_Hecho_Venta_rango_etario FOREIGN KEY (venta_rango_etario)
+	CONSTRAINT FK_Hecho_Venta_rango_etario FOREIGN KEY (rango_etario)
 		REFERENCES THIS_IS_FINE.BI_rango_etario (rango_etario_id)
 )
 
@@ -504,20 +507,21 @@ JOIN THIS_IS_FINE.BI_ubicacion ON prov.provincia_detalle = ubicacion_provincia A
 
 ---- INSERT HECHO VENTA -----
 INSERT INTO THIS_IS_FINE.BI_Hecho_Venta(
-    venta_factura, 
-	venta_ubicacion,
-	venta_tiempo,
-	venta_modelo_sillon,
-	venta_cantidad,
-	venta_total,
-	venta_rango_etario)
-SELECT factura_numero,
+	ubicacion,
+	tiempo,
+	modelo_sillon,
+	rango_etario,
+	cantidad_ventas,
+	total_vendido,
+	importe_promedio)
+SELECT
        ubicacion_id,
 	   tiempo_id,
 	   BI_sillon.modelo_id,
-	   df.detalle_factura_cantidad,
-	   factura_total,
-	   rango_etario.rango_etario_id
+	   rango_etario.rango_etario_id,
+	   COUNT(DISTINCT factura_numero),
+	   SUM(factura_total),
+	   AVG(factura_total)
 FROM THIS_IS_FINE.Factura
 JOIN THIS_IS_FINE.BI_tiempo ON YEAR(factura_fecha) = tiempo_anio
 	AND THIS_IS_FINE.getCuatri(factura_fecha) = tiempo_cuatrimestre AND MONTH(factura_fecha) = tiempo_mes
@@ -533,6 +537,7 @@ JOIN THIS_IS_FINE.sillon_modelo sModelo ON sModelo.sillon_modelo_codigo = sillon
 JOIN THIS_IS_FINE.BI_modelo_sillon BI_sillon ON BI_sillon.modelo_descripcion = sModelo.sillon_modelo_descripcion
 JOIN THIS_IS_FINE.Cliente cliente ON Factura.factura_cliente = cliente.cliente_codigo
 JOIN THIS_IS_FINE.BI_rango_etario rango_etario ON THIS_IS_FINE.rangoEtario(cliente.cliente_fecha_nacimiento) = rango_etario.rango
+GROUP BY ubicacion_id, tiempo_id, BI_sillon.modelo_id, rango_etario.rango_etario_id
 
 ------  VISTAS  ------
 
