@@ -125,7 +125,7 @@ CREATE TABLE THIS_IS_FINE.BI_Hecho_Pedido(
 	--hecho_pedido_rango_etario INT, Me parece que no va
 	pedido_turno_ventas INT,
 	pedido_estado INT,
---	pedido_modelo_sillon INT,
+	--	pedido_modelo_sillon INT,
 	pedido_cantidad_sillones INT,
 	--pedido_sillon_precio DECIMAL(18,2),
 	--pedido_subtotal BIGINT,
@@ -144,7 +144,7 @@ CREATE TABLE THIS_IS_FINE.BI_Hecho_Pedido(
 --	CONSTRAINT FK_Hecho_Pedido_modelo_sillon FOREIGN KEY (pedido_modelo_sillon)
 	--	REFERENCES THIS_IS_FINE.BI_modelo_sillon (modelo_id)
 )
-use GD1C2025
+
 
 CREATE TABLE THIS_IS_FINE.BI_Hecho_Venta(
 	ubicacion INT,
@@ -330,36 +330,32 @@ GO
 
 GO
 CREATE OR ALTER FUNCTION THIS_IS_FINE.getTiempoPromedioFabricacion(
-      @ubicacion_id INT,
-	  @anio INT,
-	  @cuatrimestre INT
+    @ubicacion_id INT,
+    @anio INT,
+    @cuatrimestre INT
 )
 RETURNS DECIMAL(5,2)
 AS
 BEGIN
-      DECLARE @promedio DECIMAL(5,2)
+    DECLARE @promedio DECIMAL(5,2)
 
-	  SELECT @promedio = AVG(DATEDIFF(DAY,
-	        CONVERT(DATE, CONCAT(tiempo_pedido.tiempo_anio,'-', tiempo_pedido.tiempo_mes, '-01')),
-			CONVERT(DATE, CONCAT(tiempo_factura.tiempo_anio, '-', tiempo_factura.tiempo_mes, '-01'))
-      ))
-	  FROM THIS_IS_FINE.BI_Hecho_Pedido pedido
-	  JOIN THIS_IS_FINE.BI_tiempo tiempo_pedido
-	      ON pedido.hecho_pedido_tiempo = tiempo_pedido.tiempo_id
-      JOIN THIS_IS_FINE.detalle_pedido dp
-	      ON dp.pedido_numero = pedido.pedido_codigo
-      JOIN THIS_IS_FINE.detalle_factura df
-	      ON df.detalle_factura_pedido = dp.detalle_pedido_id
-      JOIN THIS_IS_FINE.BI_Hecho_Venta venta
-	      ON venta.venta_factura = df.detalle_factura_numero
-      JOIN THIS_IS_FINE.BI_tiempo tiempo_factura
-	      ON venta.venta_tiempo = tiempo_factura.tiempo_id
-      WHERE pedido.pedido_ubicacion = @ubicacion_id
-	     AND tiempo_pedido.tiempo_anio = @anio
-		 AND tiempo_pedido.tiempo_cuatrimestre = @cuatrimestre;
+    SELECT @promedio = AVG(
+        1.0 * (
+            (tv.tiempo_anio - tp.tiempo_anio) * 12 +
+            (tv.tiempo_mes - tp.tiempo_mes)
+        )
+    )
+    FROM THIS_IS_FINE.BI_Hecho_Pedido pedido
+    JOIN THIS_IS_FINE.BI_Hecho_Venta venta 
+        ON pedido.hecho_pedido_ubicacion = venta.ubicacion 
+    JOIN THIS_IS_FINE.BI_tiempo tp ON pedido.hecho_pedido_tiempo = tp.tiempo_id
+    JOIN THIS_IS_FINE.BI_tiempo tv ON venta.tiempo = tv.tiempo_id
+    WHERE pedido.hecho_pedido_ubicacion = @ubicacion_id
+      AND tp.tiempo_anio = @anio
+      AND tp.tiempo_cuatrimestre = @cuatrimestre
 
-      RETURN @promedio
-END;
+    RETURN @promedio
+END
 GO
 
 GO
@@ -423,8 +419,6 @@ FROM THIS_IS_FINE.Pedido
 
 ----- INSERT HECHO PEDIDO -----
 
-DELETE FROM THIS_IS_FINE.BI_Hecho_Pedido
-
 INSERT INTO THIS_IS_FINE.BI_Hecho_Pedido(
 	hecho_pedido_ubicacion, 
 	hecho_pedido_tiempo,  
@@ -441,7 +435,7 @@ SELECT ubicacion.ubicacion_id,
 	turno.turno_id, 
 	estado.estado_id,
 	--BI_modelo.modelo_id,
-	COUNT(detalle.pedido_det_cantidad) as pedido_cantidad_sillones,
+	SUM(detalle.pedido_det_cantidad) as pedido_cantidad_sillones,
 	--detalle.pedido_det_precio,
 	SUM(detalle.pedido_det_subtotal) as pedido_total
 
@@ -463,8 +457,6 @@ JOIN THIS_IS_FINE.BI_estado_pedido estado ON pedido.pedido_estado = estado.estad
 GROUP BY ubicacion.ubicacion_id, tiempo.tiempo_id, turno.turno_id, estado.estado_id
 
 ----- INSERT HECHO COMPRA -----
-
-SELECT * FROM THIS_IS_FINE.BI_Hecho_Compra
 
 INSERT INTO THIS_IS_FINE.BI_Hecho_Compra( 
 	compra_tiempo,
@@ -663,7 +655,7 @@ CROSS JOIN (
 )t
 WHERE THIS_IS_FINE.getTiempoPromedioFabricacion(u.ubicacion_id, t.tiempo_anio, t.tiempo_cuatrimestre) IS NOT NULL
 GO
-
+SELECT * FROM THIS_IS_FINE.PromedioTiempoFabriacion
 GO
 ---- VISTA 7: PROMEDIO DE COMPRAS ----
 GO
