@@ -157,7 +157,7 @@ CREATE TABLE THIS_IS_FINE.BI_Hecho_Venta(
 	rango_etario INT,
 
 	sillones_vendidos INT,
-	importe_promedio decimal(18,2),
+	cantidad_ventas INT,
 	total_vendido decimal(18,2),
 
 	CONSTRAINT PK_Hecho_Venta PRIMARY KEY (hecho_venta_id),
@@ -170,6 +170,11 @@ CREATE TABLE THIS_IS_FINE.BI_Hecho_Venta(
 	CONSTRAINT FK_Hecho_Venta_rango_etario FOREIGN KEY (rango_etario)
 		REFERENCES THIS_IS_FINE.BI_rango_etario (rango_etario_id)
 )
+
+ALTER TABLE THIS_IS_FINE.BI_Hecho_Venta
+ADD total_vendido DECIMAL(12,2)
+
+SELECT * FROM THIS_IS_FINE.BI_Hecho_Venta
 
 CREATE TABLE THIS_IS_FINE.BI_Hecho_Envio (
 	envio_id INT IDENTITY(1,1),
@@ -511,6 +516,7 @@ JOIN THIS_IS_FINE.Provincia prov ON loc.localidad_provincia = prov.provincia_cod
 JOIN THIS_IS_FINE.BI_ubicacion ON prov.provincia_detalle = ubicacion_provincia AND loc.localidad_detalle = ubicacion_localidad
 
 ---- INSERT HECHO VENTA -----
+
 INSERT INTO THIS_IS_FINE.BI_Hecho_Venta(
 	ubicacion,
 	tiempo,
@@ -518,7 +524,7 @@ INSERT INTO THIS_IS_FINE.BI_Hecho_Venta(
 	rango_etario,
 	sillones_vendidos,
 	total_vendido,
-	importe_promedio)
+	cantidad_ventas)
 SELECT
        ubicacion_id,
 	   tiempo_id,
@@ -526,7 +532,7 @@ SELECT
 	   rango_etario.rango_etario_id,
 	   SUM(df.detalle_factura_cantidad),
 	   SUM(factura_total),
-	   AVG(factura_total)
+	   COUNT(DISTINCT factura_numero)
 FROM THIS_IS_FINE.Factura
 JOIN THIS_IS_FINE.BI_tiempo ON YEAR(factura_fecha) = tiempo_anio
 	AND THIS_IS_FINE.getCuatri(factura_fecha) = tiempo_cuatrimestre AND MONTH(factura_fecha) = tiempo_mes
@@ -572,10 +578,10 @@ SELECT
     t.tiempo_anio AS anio,
     t.tiempo_cuatrimestre AS cuatrimestre,
     u.ubicacion_provincia AS provincia,
-    AVG(p.pedido_precio_total) AS factura_promedio
-FROM THIS_IS_FINE.BI_Hecho_Pedido p
-JOIN THIS_IS_FINE.BI_tiempo t ON p.pedido_tiempo = t.tiempo_id
-JOIN THIS_IS_FINE.BI_ubicacion u ON p.pedido_ubicacion = u.ubicacion_id
+	SUM(venta.total_vendido) / SUM(venta.cantidad_ventas) AS promedio_mensual
+FROM THIS_IS_FINE.BI_Hecho_Venta venta
+JOIN THIS_IS_FINE.BI_tiempo t ON  venta.tiempo = t.tiempo_id
+JOIN THIS_IS_FINE.BI_ubicacion u ON venta.ubicacion = u.ubicacion_id
 GROUP BY
     t.tiempo_anio,
     t.tiempo_cuatrimestre,
@@ -583,7 +589,6 @@ GROUP BY
 GO
 
 ---- VISTA 3: RENDIMIENTO DE MODELOS ----
-GO
 CREATE OR ALTER VIEW THIS_IS_FINE.BI_Rendimiento_Modelos 
 AS
 SELECT 
@@ -592,16 +597,16 @@ SELECT
 	ubicacion.ubicacion_localidad,
 	rEtario.rango
 FROM THIS_IS_FINE.BI_modelo_sillon modelo
-JOIN THIS_IS_FINE.BI_Hecho_Venta venta ON venta.venta_modelo_sillon = modelo.modelo_id
-JOIN THIS_IS_FINE.BI_ubicacion ubicacion ON venta.venta_ubicacion = ubicacion.ubicacion_id
-JOIN THIS_IS_FINE.BI_tiempo tiempo ON tiempo_id = venta.venta_tiempo
-JOIN THIS_IS_FINE.BI_rango_etario rEtario ON rEtario.rango_etario_id =  venta.venta_rango_etario
+JOIN THIS_IS_FINE.BI_Hecho_Venta venta ON venta.modelo_sillon = modelo.modelo_id
+JOIN THIS_IS_FINE.BI_ubicacion ubicacion ON venta.ubicacion = ubicacion.ubicacion_id
+JOIN THIS_IS_FINE.BI_tiempo tiempo ON tiempo_id = venta.tiempo
+JOIN THIS_IS_FINE.BI_rango_etario rEtario ON rEtario.rango_etario_id =  venta.rango_etario
 WHERE modelo.modelo_id IN (
     SELECT TOP 3 modelo_id
     FROM THIS_IS_FINE.BI_modelo_sillon
-    JOIN THIS_IS_FINE.BI_Hecho_Venta ON venta_modelo_sillon = modelo_id
+    JOIN THIS_IS_FINE.BI_Hecho_Venta v ON v.modelo_sillon = modelo_id
     GROUP BY modelo_id
-    ORDER BY SUM(venta_cantidad) DESC
+    ORDER BY SUM(v.cantidad_ventas) DESC
 )
 GROUP BY ubicacion.ubicacion_localidad,tiempo.tiempo_cuatrimestre, tiempo.tiempo_anio, rEtario.rango, modelo.modelo_descripcion
 
