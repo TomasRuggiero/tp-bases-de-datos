@@ -4,7 +4,6 @@
 
 use GD1C2025
 
-SELECT * FROM THIS_IS_FINE.
 
 IF OBJECT_ID('THIS_IS_FINE.BI_Hecho_Envio', 'U') IS NOT NULL
     DROP TABLE THIS_IS_FINE.BI_Hecho_Envio;
@@ -126,31 +125,28 @@ CREATE TABLE THIS_IS_FINE.BI_Hecho_Pedido(
 	--hecho_pedido_rango_etario INT, Me parece que no va
 	pedido_turno_ventas INT,
 	pedido_estado INT,
-	pedido_modelo_sillon INT,
+--	pedido_modelo_sillon INT,
 	pedido_cantidad_sillones INT,
-	pedido_sillon_precio DECIMAL(18,2),
-	pedido_subtotal BIGINT,
-	pedido_precio_total DECIMAL(18,2),
+	--pedido_sillon_precio DECIMAL(18,2),
+	--pedido_subtotal BIGINT,
+	pedido_total DECIMAL(18,2),
 
-	CONSTRAINT PK_Hecho_pedido PRIMARY KEY (pedido_id),
-
-	CONSTRAINT FK_Hecho_Pedido_ubicacion FOREIGN KEY (pedido_ubicacion)
+	CONSTRAINT FK_Hecho_Pedido_ubicacion FOREIGN KEY (hecho_pedido_ubicacion)
 		REFERENCES THIS_IS_FINE.BI_ubicacion (ubicacion_id),
-	CONSTRAINT FK_Hecho_Pedido_tiempo FOREIGN KEY (pedido_tiempo)
+	CONSTRAINT FK_Hecho_Pedido_tiempo FOREIGN KEY (hecho_pedido_tiempo)
 		REFERENCES THIS_IS_FINE.BI_tiempo (tiempo_id),
-	CONSTRAINT FK_Hecho_Pedido_rango_etario FOREIGN KEY (pedido_rango_etario)
-		REFERENCES THIS_IS_FINE.BI_rango_etario (rango_etario_id),
+--	CONSTRAINT FK_Hecho_Pedido_rango_etario FOREIGN KEY (pedido_rango_etario)
+	--	REFERENCES THIS_IS_FINE.BI_rango_etario (rango_etario_id),
 	CONSTRAINT FK_Hecho_Pedido_horario_ventas FOREIGN KEY (pedido_turno_ventas)
 		REFERENCES THIS_IS_FINE.BI_turno_ventas (turno_id),
 	CONSTRAINT FK_Hecho_Pedido_estado FOREIGN KEY (pedido_estado)
 		REFERENCES THIS_IS_FINE.BI_estado_pedido (estado_id),
-	CONSTRAINT FK_Hecho_Pedido_modelo_sillon FOREIGN KEY (pedido_modelo_sillon)
-		REFERENCES THIS_IS_FINE.BI_modelo_sillon (modelo_id)
+--	CONSTRAINT FK_Hecho_Pedido_modelo_sillon FOREIGN KEY (pedido_modelo_sillon)
+	--	REFERENCES THIS_IS_FINE.BI_modelo_sillon (modelo_id)
 )
 use GD1C2025
 
 CREATE TABLE THIS_IS_FINE.BI_Hecho_Venta(
-	hecho_venta_id INT IDENTITY(1,1),
 	ubicacion INT,
 	tiempo INT,
 	modelo_sillon INT,
@@ -160,7 +156,6 @@ CREATE TABLE THIS_IS_FINE.BI_Hecho_Venta(
 	cantidad_ventas INT,
 	total_vendido decimal(18,2),
 
-	CONSTRAINT PK_Hecho_Venta PRIMARY KEY (hecho_venta_id),
 	CONSTRAINT FK_Hecho_Venta_ubicacion FOREIGN KEY (ubicacion)
 		REFERENCES THIS_IS_FINE.BI_ubicacion (ubicacion_id),
 	CONSTRAINT FK_Hecho_Venta_tiempo FOREIGN KEY (tiempo)
@@ -177,13 +172,10 @@ ADD total_vendido DECIMAL(12,2)
 SELECT * FROM THIS_IS_FINE.BI_Hecho_Venta
 
 CREATE TABLE THIS_IS_FINE.BI_Hecho_Envio (
-	envio_id INT IDENTITY(1,1),
 	envio_tiempo_programado INT,
 	envio_tiempo_enviado INT,
 	envio_ubicacion INT,
 	envio_total DECIMAL(18,2),
-
-	CONSTRAINT PK_BI_Hecho_Envio PRIMARY KEY (envio_id),
 	
 	CONSTRAINT FK_Hecho_Envio_tiempo_programado FOREIGN KEY (envio_tiempo_programado)
 		REFERENCES THIS_IS_FINE.BI_tiempo (tiempo_id),
@@ -353,7 +345,7 @@ BEGIN
       ))
 	  FROM THIS_IS_FINE.BI_Hecho_Pedido pedido
 	  JOIN THIS_IS_FINE.BI_tiempo tiempo_pedido
-	      ON pedido.pedido_tiempo = tiempo_pedido.tiempo_id
+	      ON pedido.hecho_pedido_tiempo = tiempo_pedido.tiempo_id
       JOIN THIS_IS_FINE.detalle_pedido dp
 	      ON dp.pedido_numero = pedido.pedido_codigo
       JOIN THIS_IS_FINE.detalle_factura df
@@ -434,38 +426,41 @@ FROM THIS_IS_FINE.Pedido
 DELETE FROM THIS_IS_FINE.BI_Hecho_Pedido
 
 INSERT INTO THIS_IS_FINE.BI_Hecho_Pedido(
-	pedido_codigo, 
-	pedido_ubicacion, 
-	pedido_tiempo, 
-	pedido_rango_etario, 
+	hecho_pedido_ubicacion, 
+	hecho_pedido_tiempo,  
 	pedido_turno_ventas,
 	pedido_estado,
-	pedido_modelo_sillon,
-	pedido_cantidad_sillon,
-	pedido_sillon_precio,--
-	pedido_subtotal,--
-	pedido_precio_total
+--	pedido_modelo_sillon,
+	pedido_cantidad_sillones,
+	--pedido_sillon_precio,--
+	--pedido_subtotal,--
+	pedido_total
 )
-SELECT pedido.pedido_numero, ubicacion.ubicacion_id, 
-	tiempo.tiempo_id, rango.rango_etario_id, turno.turno_id, 
-	estado.estado_id, BI_modelo.modelo_id, detalle.pedido_det_cantidad,
-	detalle.pedido_det_precio, detalle.pedido_det_subtotal, pedido.pedido_total
+SELECT ubicacion.ubicacion_id, 
+	tiempo.tiempo_id, 
+	turno.turno_id, 
+	estado.estado_id,
+	--BI_modelo.modelo_id,
+	COUNT(detalle.pedido_det_cantidad) as pedido_cantidad_sillones,
+	--detalle.pedido_det_precio,
+	SUM(detalle.pedido_det_subtotal) as pedido_total
 
 FROM THIS_IS_FINE.Pedido pedido
 JOIN THIS_IS_FINE.detalle_pedido detalle ON detalle.pedido_numero = pedido.pedido_numero
-JOIN THIS_IS_FINE.Cliente cliente ON cliente.cliente_codigo = pedido.pedido_cliente
-JOIN THIS_IS_FINE.Sillon sillon ON detalle.sillon_id = sillon.sillon_id
-JOIN THIS_IS_FINE.sillon_modelo modelo ON sillon.sillon_modelo = modelo.sillon_modelo_codigo
-JOIN THIS_IS_FINE.BI_modelo_sillon BI_modelo ON modelo.sillon_modelo_descripcion = BI_modelo.modelo_descripcion
+--JOIN THIS_IS_FINE.Cliente cliente ON cliente.cliente_codigo = pedido.pedido_cliente
+--JOIN THIS_IS_FINE.Sillon sillon ON detalle.sillon_id = sillon.sillon_id
+--JOIN THIS_IS_FINE.sillon_modelo modelo ON sillon.sillon_modelo = modelo.sillon_modelo_codigo
+--JOIN THIS_IS_FINE.BI_modelo_sillon BI_modelo ON modelo.sillon_modelo_descripcion = BI_modelo.modelo_descripcion
 JOIN THIS_IS_FINE.Sucursal sucursal ON sucursal.sucursal_id = pedido.pedido_sucursal
 JOIN THIS_IS_FINE.Localidad localidad ON sucursal_localidad = localidad.localidad_codigo
 JOIN THIS_IS_FINE.Provincia provincia ON localidad.localidad_provincia = provincia.provincia_codigo
 JOIN THIS_IS_FINE.BI_ubicacion ubicacion ON provincia.provincia_detalle = ubicacion.ubicacion_provincia AND localidad.localidad_detalle = ubicacion.ubicacion_localidad
 JOIN THIS_IS_FINE.BI_tiempo tiempo ON YEAR(pedido.pedido_fecha) = tiempo.tiempo_anio 
 	AND THIS_IS_FINE.getCuatri(pedido.pedido_fecha) = tiempo.tiempo_cuatrimestre AND MONTH(pedido.pedido_fecha) = tiempo.tiempo_mes
-JOIN THIS_IS_FINE.BI_rango_etario rango ON THIS_IS_FINE.rangoEtario(cliente.cliente_fecha_nacimiento) = rango.rango
+--JOIN THIS_IS_FINE.BI_rango_etario rango ON THIS_IS_FINE.rangoEtario(cliente.cliente_fecha_nacimiento) = rango.rango
 JOIN THIS_IS_FINE.BI_turno_ventas turno ON THIS_IS_FINE.getRangoHorario(CONVERT(TIME, pedido.pedido_fecha)) = turno.turno
 JOIN THIS_IS_FINE.BI_estado_pedido estado ON pedido.pedido_estado = estado.estado
+GROUP BY ubicacion.ubicacion_id, tiempo.tiempo_id, turno.turno_id, estado.estado_id
 
 ----- INSERT HECHO COMPRA -----
 
@@ -479,7 +474,13 @@ INSERT INTO THIS_IS_FINE.BI_Hecho_Compra(
 	compra_subtotal,
 	promedio_compra
 )
-SELECT tiempo_id, BI_material.tipo_material_id, SUM(detalle.detalle_compra_cantidad), ubicacion_id, SUM(detalle.detalle_compra_subtotal), AVG(compra.compra_total)
+SELECT 
+	tiempo_id, 
+	BI_material.tipo_material_id, 
+	SUM(detalle.detalle_compra_cantidad), 
+	ubicacion_id, 
+	SUM(detalle.detalle_compra_subtotal), 
+	AVG(compra.compra_total)
 FROM THIS_IS_FINE.Compra compra 
 JOIN THIS_IS_FINE.detalle_compra detalle ON detalle.detalle_compra_numero = compra.compra_numero
 JOIN THIS_IS_FINE.Material material ON material.id_material = detalle.detalle_compra_material
@@ -503,7 +504,7 @@ INSERT INTO THIS_IS_FINE.BI_Hecho_Envio(
 SELECT t1.tiempo_id,
        t2.tiempo_id,
 	   ubicacion_id,
-	   (envio_importe_traslado + envio_importe_subida) as envio_total
+	   SUM(envio_total) as envio_total
 FROM THIS_IS_FINE.Envio
 JOIN THIS_IS_FINE.BI_tiempo t1 ON YEAR(envio_fecha_programada) = t1.tiempo_anio
 	AND THIS_IS_FINE.getCuatri(envio_fecha_programada) = t1.tiempo_cuatrimestre AND MONTH(envio_fecha_programada) = t1.tiempo_mes
@@ -514,6 +515,7 @@ JOIN THIS_IS_FINE.Cliente c on c.cliente_codigo = f.factura_cliente
 JOIN THIS_IS_FINE.Localidad loc ON cliente_localidad = loc.localidad_codigo
 JOIN THIS_IS_FINE.Provincia prov ON loc.localidad_provincia = prov.provincia_codigo
 JOIN THIS_IS_FINE.BI_ubicacion ON prov.provincia_detalle = ubicacion_provincia AND loc.localidad_detalle = ubicacion_localidad
+GROUP BY t1.tiempo_id, t2.tiempo_id, ubicacion_id
 
 ---- INSERT HECHO VENTA -----
 
@@ -549,11 +551,11 @@ JOIN THIS_IS_FINE.BI_modelo_sillon BI_sillon ON BI_sillon.modelo_descripcion = s
 JOIN THIS_IS_FINE.Cliente cliente ON Factura.factura_cliente = cliente.cliente_codigo
 JOIN THIS_IS_FINE.BI_rango_etario rango_etario ON THIS_IS_FINE.rangoEtario(cliente.cliente_fecha_nacimiento) = rango_etario.rango
 GROUP BY ubicacion_id, tiempo_id, BI_sillon.modelo_id, rango_etario.rango_etario_id
-
 ------  VISTAS  ------
 
 --DELETE FROM THIS_IS_FINE.BI_Hecho_Venta
-
+USE GD1C2025
+SELECT * FROM THIS_IS_FINE.BI_Hecho_Venta
 ---- VISTA 1: GANANCIAS----
 
 CREATE OR ALTER VIEW THIS_IS_FINE.BI_Ganancias_mensuales_por_sucursal AS
@@ -604,9 +606,9 @@ JOIN THIS_IS_FINE.BI_rango_etario rEtario ON rEtario.rango_etario_id =  venta.ra
 WHERE modelo.modelo_id IN (
     SELECT TOP 3 modelo_id
     FROM THIS_IS_FINE.BI_modelo_sillon
-    JOIN THIS_IS_FINE.BI_Hecho_Venta v ON v.modelo_sillon = modelo_id
+    JOIN THIS_IS_FINE.BI_Hecho_Venta ON modelo_sillon = modelo_id
     GROUP BY modelo_id
-    ORDER BY SUM(v.cantidad_ventas) DESC
+    ORDER BY SUM(sillones_vendidos) DESC
 )
 GROUP BY ubicacion.ubicacion_localidad,tiempo.tiempo_cuatrimestre, tiempo.tiempo_anio, rEtario.rango, modelo.modelo_descripcion
 
@@ -623,9 +625,9 @@ SELECT
 	turno AS turno,
 	CAST(tiempo.tiempo_mes AS VARCHAR) + '-' + CAST(tiempo.tiempo_anio AS VARCHAR) AS [mes-año]
 FROM THIS_IS_FINE.BI_Hecho_Pedido pedido
-JOIN THIS_IS_FINE.BI_tiempo tiempo ON pedido.pedido_tiempo = tiempo.tiempo_id
-JOIN THIS_IS_FINE.BI_ubicacion ubicacion ON pedido.pedido_ubicacion = ubicacion.ubicacion_id
-JOIN THIS_IS_FINE.BI_rango_etario rangoEtario ON rangoEtario.rango_etario_id = pedido.pedido_rango_etario
+JOIN THIS_IS_FINE.BI_tiempo tiempo ON pedido.hecho_pedido_tiempo = tiempo.tiempo_id
+JOIN THIS_IS_FINE.BI_ubicacion ubicacion ON pedido.hecho_pedido_ubicacion = ubicacion.ubicacion_id
+--JOIN THIS_IS_FINE.BI_rango_etario rangoEtario ON rangoEtario.rango_etario_id = pedido.pedido_rango_etario
 JOIN THIS_IS_FINE.BI_turno_ventas ON pedido.pedido_turno_ventas = turno_id
 GROUP BY ubicacion.ubicacion_localidad, ubicacion.ubicacion_provincia, turno, tiempo.tiempo_mes, tiempo.tiempo_anio
 
@@ -640,8 +642,8 @@ SELECT
 	ubicacion.ubicacion_provincia AS sucursal_provincia
 FROM THIS_IS_FINE.BI_Hecho_Pedido pedido
 JOIN THIS_IS_FINE.BI_estado_pedido estado ON estado.estado_id = pedido.pedido_estado
-JOIN THIS_IS_FINE.BI_tiempo tiempo ON pedido.pedido_tiempo = tiempo.tiempo_id
-JOIN THIS_IS_FINE.BI_ubicacion ubicacion ON ubicacion.ubicacion_id = pedido.pedido_ubicacion
+JOIN THIS_IS_FINE.BI_tiempo tiempo ON pedido.hecho_pedido_tiempo = tiempo.tiempo_id
+JOIN THIS_IS_FINE.BI_ubicacion ubicacion ON ubicacion.ubicacion_id = pedido.hecho_pedido_ubicacion
 GROUP BY estado.estado, tiempo_cuatrimestre, ubicacion.ubicacion_localidad, ubicacion.ubicacion_provincia
 
 ---- VISTA 6: TIEMPO PROMEDIO DE FABRICACIÓN ----
