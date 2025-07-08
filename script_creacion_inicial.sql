@@ -897,21 +897,12 @@ BEGIN
 	    detalle_factura_cantidad,
 	    detalle_factura_subtotal
     )
-<<<<<<< HEAD
     SELECT DISTINCT
     factura.factura_numero,
     detalle.detalle_pedido_id,
 	detalle.pedido_det_precio,
     detalle.pedido_det_cantidad,
     detalle.pedido_det_subtotal
-=======
-    SELECT 
-   factura.factura_numero,
-   detalle.detalle_pedido_id,
-   maestra.Detalle_Factura_Precio,
-   maestra.Detalle_Factura_Cantidad,
-   maestra.Detalle_Factura_SubTotal
->>>>>>> be62b2c79d0ff4ab604581ed17fd050d9d942ed1
 	FROM gd_esquema.Maestra maestra
 	JOIN THIS_IS_FINE.Factura factura 
 		ON factura.factura_numero = maestra.Factura_Numero
@@ -919,21 +910,14 @@ BEGIN
 		ON p.pedido_numero = maestra.pedido_numero
 	JOIN THIS_IS_FINE.detalle_pedido detalle
 		ON detalle.pedido_numero = p.pedido_numero
-<<<<<<< HEAD
-	WHERE maestra.Detalle_Factura_SubTotal IS NOT NULL AND maestra.Pedido_Estado = 'ENTREGADO'
-=======
-	WHERE maestra.Detalle_Factura_SubTotal IS NOT NULL
 
->>>>>>> be62b2c79d0ff4ab604581ed17fd050d9d942ed1
+	WHERE maestra.Detalle_Factura_SubTotal IS NOT NULL AND maestra.Pedido_Estado = 'ENTREGADO'
+
 END;
 GO
 
 
-<<<<<<< HEAD
-SELECT * FROM THIS_IS_FINE.detalle_factura
-=======
 
->>>>>>> be62b2c79d0ff4ab604581ed17fd050d9d942ed1
 -- select * from THIS_IS_FINE.detalle_pedido
 
 -- select maestra.Pedido_Numero, Sillon_Modelo_Codigo, Detalle_Pedido_SubTotal from gd_esquema.Maestra as maestra
