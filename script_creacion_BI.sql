@@ -192,7 +192,7 @@ CREATE TABLE THIS_IS_FINE.BI_Hecho_Compra (
 	compra_tiempo INT,
 	compra_material INT,
 	compra_ubicacion INT,
-	compra_total DECIMAL(12,2),
+	compra_subtotal DECIMAL(12,2),
 	cantidad_compras INT,
 	promedio_compra DECIMAL(12,2)
 	
@@ -203,7 +203,6 @@ CREATE TABLE THIS_IS_FINE.BI_Hecho_Compra (
 	CONSTRAINT FK_Hecho_Compra_ubicacion FOREIGN KEY (compra_ubicacion)
 		REFERENCES THIS_IS_FINE.BI_ubicacion (ubicacion_id),
 )
-
 ---- LO DEJO POR SI YA TIENEN CARGADA LA TABLA COMO ESTABA ANTES (SIN CANTIDAD)
 --TER TABLE THIS_IS_FINE.BI_Hecho_Compra
 --D compra_cantidad DECIMAL(18,0)
@@ -464,15 +463,18 @@ JOIN THIS_IS_FINE.BI_turno_ventas turno ON THIS_IS_FINE.getRangoHorario(CONVERT(
 JOIN THIS_IS_FINE.BI_estado_pedido estado ON pedido.pedido_estado = estado.estado
 
 ----- INSERT HECHO COMPRA -----
+
+SELECT * FROM THIS_IS_FINE.BI_Hecho_Compra
+
 INSERT INTO THIS_IS_FINE.BI_Hecho_Compra( 
 	compra_tiempo,
 	compra_material,
 	cantidad_compras,
 	compra_ubicacion,
-	compra_total,
+	compra_subtotal,
 	promedio_compra
 )
-SELECT tiempo_id, BI_material.tipo_material_id, COUNT(DISTINCT compra.compra_numero), ubicacion_id, SUM(compra.compra_total), AVG(compra.compra_total)
+SELECT tiempo_id, BI_material.tipo_material_id, SUM(detalle.detalle_compra_cantidad), ubicacion_id, SUM(detalle.detalle_compra_subtotal), AVG(compra.compra_total)
 FROM THIS_IS_FINE.Compra compra 
 JOIN THIS_IS_FINE.detalle_compra detalle ON detalle.detalle_compra_numero = compra.compra_numero
 JOIN THIS_IS_FINE.Material material ON material.id_material = detalle.detalle_compra_material
@@ -508,7 +510,6 @@ JOIN THIS_IS_FINE.Localidad loc ON cliente_localidad = loc.localidad_codigo
 JOIN THIS_IS_FINE.Provincia prov ON loc.localidad_provincia = prov.provincia_codigo
 JOIN THIS_IS_FINE.BI_ubicacion ON prov.provincia_detalle = ubicacion_provincia AND loc.localidad_detalle = ubicacion_localidad
 
-DELETE FROM THIS_IS_FINE.BI_Hecho_Venta
 ---- INSERT HECHO VENTA -----
 INSERT INTO THIS_IS_FINE.BI_Hecho_Venta(
 	ubicacion,
@@ -523,7 +524,7 @@ SELECT
 	   tiempo_id,
 	   BI_sillon.modelo_id,
 	   rango_etario.rango_etario_id,
-	   COUNT(df.detalle_factura_cantidad),
+	   SUM(df.detalle_factura_cantidad),
 	   SUM(factura_total),
 	   AVG(factura_total)
 FROM THIS_IS_FINE.Factura
@@ -543,36 +544,27 @@ JOIN THIS_IS_FINE.Cliente cliente ON Factura.factura_cliente = cliente.cliente_c
 JOIN THIS_IS_FINE.BI_rango_etario rango_etario ON THIS_IS_FINE.rangoEtario(cliente.cliente_fecha_nacimiento) = rango_etario.rango
 GROUP BY ubicacion_id, tiempo_id, BI_sillon.modelo_id, rango_etario.rango_etario_id
 
-
 ------  VISTAS  ------
 
 --DELETE FROM THIS_IS_FINE.BI_Hecho_Venta
 
 ---- VISTA 1: GANANCIAS----
-GO
-CREATE OR alter VIEW THIS_IS_FINE.BI_Ganancias AS
-SELECT 
-    t.tiempo_anio as anio,
-    t.tiempo_mes as mes,
-    u.ubicacion_localidad as sucursal_localidad,
-    u.ubicacion_provincia as sucursal_provincia,
-    ISNULL(SUM(p.pedido_precio_total), 0) - ISNULL(SUM(c.compra_total), 0) AS ganancia
-FROM THIS_IS_FINE.BI_tiempo t
-JOIN THIS_IS_FINE.BI_Hecho_Pedido p
-    ON p.pedido_tiempo = t.tiempo_id
-JOIN THIS_IS_FINE.BI_ubicacion u
-    ON p.pedido_ubicacion = u.ubicacion_id
-LEFT JOIN THIS_IS_FINE.BI_Hecho_Compra c
-    ON c.compra_tiempo = t.tiempo_id
-    AND c.compra_ubicacion = u.ubicacion_id
-GROUP BY 
-    t.tiempo_anio,
-    t.tiempo_mes,
-    u.ubicacion_localidad,
-    u.ubicacion_provincia;
-GO
 
-GO
+CREATE OR ALTER VIEW THIS_IS_FINE.BI_Ganancias_mensuales_por_sucursal AS
+SELECT 
+	tiempo.tiempo_anio as anio,
+	tiempo.tiempo_mes as mes,
+	ubi.ubicacion_localidad as sucursal_localidad,
+	ubi.ubicacion_provincia as sucursal_provincia,
+	ISNULL(SUM(venta.total_vendido) - SUM(compra.compra_subtotal),0) as ganancia_mensual
+FROM THIS_IS_FINE.BI_Hecho_Venta venta
+JOIN THIS_IS_FINE.BI_tiempo tiempo ON tiempo.tiempo_id = venta.tiempo 
+JOIN THIS_IS_FINE.BI_ubicacion ubi ON venta.ubicacion = ubi.ubicacion_id 
+LEFT JOIN THIS_IS_FINE.BI_Hecho_Compra compra ON compra.compra_tiempo = tiempo.tiempo_id AND compra.compra_ubicacion = ubi.ubicacion_id
+GROUP BY tiempo.tiempo_anio,
+	tiempo.tiempo_mes,
+	ubi.ubicacion_localidad,
+	ubi.ubicacion_provincia
 
 --- Vista 2 ----
 CREATE OR ALTER VIEW THIS_IS_FINE.BI_FacturaPromedioMensual AS
