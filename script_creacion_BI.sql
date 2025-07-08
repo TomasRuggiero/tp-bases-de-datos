@@ -166,8 +166,8 @@ CREATE TABLE THIS_IS_FINE.BI_Hecho_Venta(
 		REFERENCES THIS_IS_FINE.BI_rango_etario (rango_etario_id)
 )
 
-ALTER TABLE THIS_IS_FINE.BI_Hecho_Venta
-ADD total_vendido DECIMAL(12,2)
+-- ALTER TABLE THIS_IS_FINE.BI_Hecho_Venta
+-- ADD total_vendido DECIMAL(12,2)
 
 SELECT * FROM THIS_IS_FINE.BI_Hecho_Venta
 
@@ -266,10 +266,10 @@ BEGIN
 	DECLARE @porcentaje DECIMAL(5,2); -- ejemplo: 73.45
 	DECLARE @porcentajeTexto NVARCHAR(50);
 
-	SELECT @cantidadPedidosTotales = COUNT(DISTINCT pedido_codigo)
+	SELECT @cantidadPedidosTotales = COUNT(*)
 	FROM THIS_IS_FINE.BI_Hecho_Pedido;
 
-	SELECT @cantidadPedidosPorEstado = COUNT(DISTINCT pedido_codigo)
+	SELECT @cantidadPedidosPorEstado = COUNT(*)
 	FROM THIS_IS_FINE.BI_Hecho_Pedido
 	JOIN THIS_IS_FINE.BI_estado_pedido ON pedido_estado = estado_id
 	WHERE estado = @estado;
@@ -356,8 +356,6 @@ BEGIN
 
     RETURN @promedio
 END
-GO
-
 GO
 --------  INSERCION DE DATOS  --------
 
@@ -548,6 +546,7 @@ GROUP BY ubicacion_id, tiempo_id, BI_sillon.modelo_id, rango_etario.rango_etario
 --DELETE FROM THIS_IS_FINE.BI_Hecho_Venta
 USE GD1C2025
 SELECT * FROM THIS_IS_FINE.BI_Hecho_Venta
+GO
 ---- VISTA 1: GANANCIAS----
 
 CREATE OR ALTER VIEW THIS_IS_FINE.BI_Ganancias_mensuales_por_sucursal AS
@@ -565,6 +564,7 @@ GROUP BY tiempo.tiempo_anio,
 	tiempo.tiempo_mes,
 	ubi.ubicacion_localidad,
 	ubi.ubicacion_provincia
+GO
 
 --- Vista 2 ----
 CREATE OR ALTER VIEW THIS_IS_FINE.BI_FacturaPromedioMensual AS
@@ -587,7 +587,7 @@ CREATE OR ALTER VIEW THIS_IS_FINE.BI_Rendimiento_Modelos
 AS
 SELECT 
 	modelo.modelo_descripcion,
-	CAST(tiempo.tiempo_cuatrimestre AS VARCHAR) + '-' + CAST(tiempo.tiempo_anio AS VARCHAR) AS [cuatrimestre-año],
+	CAST(tiempo.tiempo_cuatrimestre AS VARCHAR) + '-' + CAST(tiempo.tiempo_anio AS VARCHAR) AS [cuatrimestre-aï¿½o],
 	ubicacion.ubicacion_localidad,
 	rEtario.rango
 FROM THIS_IS_FINE.BI_modelo_sillon modelo
@@ -611,11 +611,11 @@ GROUP BY ubicacion.ubicacion_localidad,tiempo.tiempo_cuatrimestre, tiempo.tiempo
 GO
 CREATE OR ALTER VIEW THIS_IS_FINE.Volumen_Pedidos AS 
 SELECT 
-	COUNT(DISTINCT pedido.pedido_codigo) AS Cantidad_Pedidos,
+	COUNT(*) AS Cantidad_Pedidos,
 	ubicacion.ubicacion_localidad AS sucursal_localidad,
 	ubicacion.ubicacion_provincia AS sucursal_provincia,
 	turno AS turno,
-	CAST(tiempo.tiempo_mes AS VARCHAR) + '-' + CAST(tiempo.tiempo_anio AS VARCHAR) AS [mes-año]
+	CAST(tiempo.tiempo_mes AS VARCHAR) + '-' + CAST(tiempo.tiempo_anio AS VARCHAR) AS [mes-aï¿½o]
 FROM THIS_IS_FINE.BI_Hecho_Pedido pedido
 JOIN THIS_IS_FINE.BI_tiempo tiempo ON pedido.hecho_pedido_tiempo = tiempo.tiempo_id
 JOIN THIS_IS_FINE.BI_ubicacion ubicacion ON pedido.hecho_pedido_ubicacion = ubicacion.ubicacion_id
@@ -638,7 +638,7 @@ JOIN THIS_IS_FINE.BI_tiempo tiempo ON pedido.hecho_pedido_tiempo = tiempo.tiempo
 JOIN THIS_IS_FINE.BI_ubicacion ubicacion ON ubicacion.ubicacion_id = pedido.hecho_pedido_ubicacion
 GROUP BY estado.estado, tiempo_cuatrimestre, ubicacion.ubicacion_localidad, ubicacion.ubicacion_provincia
 
----- VISTA 6: TIEMPO PROMEDIO DE FABRICACIÓN ----
+---- VISTA 6: TIEMPO PROMEDIO DE FABRICACIï¿½N ----
 GO
 CREATE OR ALTER VIEW THIS_IS_FINE.PromedioTiempoFabriacion AS
 SELECT 
@@ -663,7 +663,7 @@ CREATE OR ALTER VIEW THIS_IS_FINE.v_promedio_compras_mensual AS
 SELECT
     tiempo.tiempo_anio AS anio,
     tiempo.tiempo_mes AS mes,
-    ROUND(AVG(compra.compra_total), 2) AS promedio_mensual
+    ROUND(AVG(compra.compra_subtotal), 2) AS promedio_mensual
 FROM THIS_IS_FINE.BI_Hecho_Compra compra
 JOIN THIS_IS_FINE.BI_tiempo tiempo ON compra.compra_tiempo = tiempo.tiempo_id
 GROUP BY tiempo.tiempo_anio, tiempo.tiempo_mes;
@@ -677,7 +677,7 @@ SELECT
     ubicacion_sucursal.ubicacion_localidad,
     tiempo.tiempo_anio,
     tiempo.tiempo_cuatrimestre,
-    SUM(compra.compra_total) AS total_gastado
+    SUM(compra.compra_subtotal) AS total_gastado
 FROM THIS_IS_FINE.BI_Hecho_Compra compra
 JOIN THIS_IS_FINE.BI_tipo_material tipo_material ON compra.compra_material = tipo_material.tipo_material_id
 JOIN THIS_IS_FINE.BI_ubicacion ubicacion_sucursal ON compra.compra_ubicacion = ubicacion_sucursal.ubicacion_id
@@ -689,7 +689,7 @@ GROUP BY
     tiempo.tiempo_anio,
     tiempo.tiempo_cuatrimestre;
 
----- VISTA 9: PORCENTAJE DE CUMPLIMIENTO DE ENVÍOS -----
+---- VISTA 9: PORCENTAJE DE CUMPLIMIENTO DE ENVï¿½OS -----
 GO
 CREATE OR ALTER VIEW THIS_IS_FINE.Porcentaje_Cumplimiento_Envios AS
 SELECT
@@ -705,7 +705,7 @@ GO
 CREATE OR ALTER VIEW THIS_IS_FINE.Envio_Localidad AS
 SELECT TOP 3 
 	u.ubicacion_localidad AS localidad,
-	u.ubicacion_provincia AS provincia, --traigo también la provincia porque podrían existir localidades con el mismo nombre en distintas provincias
+	u.ubicacion_provincia AS provincia, --traigo tambiï¿½n la provincia porque podrï¿½an existir localidades con el mismo nombre en distintas provincias
 	AVG(e.envio_total) AS promedio_costo_envio
 FROM THIS_IS_FINE.BI_Hecho_Envio e
 JOIN THIS_IS_FINE.BI_ubicacion u ON e.envio_ubicacion = u.ubicacion_id
@@ -713,11 +713,3 @@ GROUP BY u.ubicacion_localidad, u.ubicacion_provincia
 ORDER BY promedio_costo_envio DESC
 
 GO
-
-
-
-
-
-
-
-
