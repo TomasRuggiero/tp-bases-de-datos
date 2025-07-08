@@ -149,7 +149,6 @@ CREATE TABLE THIS_IS_FINE.BI_Hecho_Pedido(
 )
 use GD1C2025
 
-
 CREATE TABLE THIS_IS_FINE.BI_Hecho_Venta(
 	hecho_venta_id INT IDENTITY(1,1),
 	ubicacion INT,
@@ -157,7 +156,7 @@ CREATE TABLE THIS_IS_FINE.BI_Hecho_Venta(
 	modelo_sillon INT,
 	rango_etario INT,
 
-	cantidad_ventas INT,
+	sillones_vendidos INT,
 	importe_promedio decimal(18,2),
 	total_vendido decimal(18,2),
 
@@ -510,13 +509,14 @@ JOIN THIS_IS_FINE.Localidad loc ON cliente_localidad = loc.localidad_codigo
 JOIN THIS_IS_FINE.Provincia prov ON loc.localidad_provincia = prov.provincia_codigo
 JOIN THIS_IS_FINE.BI_ubicacion ON prov.provincia_detalle = ubicacion_provincia AND loc.localidad_detalle = ubicacion_localidad
 
+DELETE FROM THIS_IS_FINE.BI_Hecho_Venta
 ---- INSERT HECHO VENTA -----
 INSERT INTO THIS_IS_FINE.BI_Hecho_Venta(
 	ubicacion,
 	tiempo,
 	modelo_sillon,
 	rango_etario,
-	cantidad_ventas,
+	sillones_vendidos,
 	total_vendido,
 	importe_promedio)
 SELECT
@@ -524,7 +524,7 @@ SELECT
 	   tiempo_id,
 	   BI_sillon.modelo_id,
 	   rango_etario.rango_etario_id,
-	   COUNT(DISTINCT factura_numero),
+	   COUNT(df.detalle_factura_cantidad),
 	   SUM(factura_total),
 	   AVG(factura_total)
 FROM THIS_IS_FINE.Factura
@@ -534,7 +534,7 @@ JOIN THIS_IS_FINE.Sucursal sucursal ON sucursal.sucursal_id = factura_sucursal
 JOIN THIS_IS_FINE.Localidad localidad ON sucursal_localidad = localidad.localidad_codigo
 JOIN THIS_IS_FINE.Provincia provincia ON localidad.localidad_provincia = provincia.provincia_codigo
 JOIN THIS_IS_FINE.BI_ubicacion ubicacion ON provincia.provincia_detalle = ubicacion.ubicacion_provincia
-AND localidad.localidad_detalle = ubicacion.ubicacion_localidad
+	AND localidad.localidad_detalle = ubicacion.ubicacion_localidad
 JOIN THIS_IS_FINE.detalle_factura df ON factura_numero = df.detalle_factura_numero
 JOIN THIS_IS_FINE.detalle_pedido detPed ON detPed.detalle_pedido_id = df.detalle_factura_pedido
 JOIN THIS_IS_FINE.Sillon sillon ON detPed.sillon_id = sillon.sillon_id
@@ -543,6 +543,7 @@ JOIN THIS_IS_FINE.BI_modelo_sillon BI_sillon ON BI_sillon.modelo_descripcion = s
 JOIN THIS_IS_FINE.Cliente cliente ON Factura.factura_cliente = cliente.cliente_codigo
 JOIN THIS_IS_FINE.BI_rango_etario rango_etario ON THIS_IS_FINE.rangoEtario(cliente.cliente_fecha_nacimiento) = rango_etario.rango
 GROUP BY ubicacion_id, tiempo_id, BI_sillon.modelo_id, rango_etario.rango_etario_id
+
 
 ------  VISTAS  ------
 
