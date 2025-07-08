@@ -189,15 +189,12 @@ CREATE TABLE THIS_IS_FINE.BI_Hecho_Envio (
 )
 
 CREATE TABLE THIS_IS_FINE.BI_Hecho_Compra (
-	compra_id INT IDENTITY(1,1),
 	compra_tiempo INT,
 	compra_material INT,
 	compra_ubicacion INT,
-	compra_subtotal DECIMAL(12,2),
 	compra_total DECIMAL(12,2),
-	compra_cantidad DECIMAL(18,0),
-
-	CONSTRAINT PK_BI_Hecho_Compra PRIMARY KEY (compra_id),
+	cantidad_compras INT,
+	promedio_compra DECIMAL(12,2)
 	
 	CONSTRAINT FK_Hecho_Compra_Tiempo FOREIGN KEY (compra_tiempo)
 		REFERENCES THIS_IS_FINE.BI_tiempo (tiempo_id),
@@ -470,11 +467,12 @@ JOIN THIS_IS_FINE.BI_estado_pedido estado ON pedido.pedido_estado = estado.estad
 INSERT INTO THIS_IS_FINE.BI_Hecho_Compra( 
 	compra_tiempo,
 	compra_material,
-	compra_cantidad,
+	cantidad_compras,
 	compra_ubicacion,
-	compra_subtotal,
-	compra_total)
-SELECT tiempo_id, BI_material.tipo_material_id, detalle.detalle_compra_cantidad, ubicacion_id, detalle.detalle_compra_subtotal, compra.compra_total
+	compra_total,
+	promedio_compra
+)
+SELECT tiempo_id, BI_material.tipo_material_id, COUNT(DISTINCT compra.compra_numero), ubicacion_id, SUM(compra.compra_total), AVG(compra.compra_total)
 FROM THIS_IS_FINE.Compra compra 
 JOIN THIS_IS_FINE.detalle_compra detalle ON detalle.detalle_compra_numero = compra.compra_numero
 JOIN THIS_IS_FINE.Material material ON material.id_material = detalle.detalle_compra_material
@@ -486,6 +484,7 @@ JOIN THIS_IS_FINE.Sucursal ON compra.compra_sucursal = sucursal_id
 JOIN THIS_IS_FINE.Localidad loc ON sucursal_localidad = loc.localidad_codigo
 JOIN THIS_IS_FINE.Provincia prov ON loc.localidad_provincia = prov.provincia_codigo
 JOIN THIS_IS_FINE.BI_ubicacion ON prov.provincia_detalle = ubicacion_provincia AND loc.localidad_detalle = ubicacion_localidad
+GROUP BY tiempo_id, BI_material.tipo_material_id, ubicacion_id
 
 ---- INSERT HECHO ENVIO ----
 
