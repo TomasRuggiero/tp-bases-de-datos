@@ -886,7 +886,6 @@ BEGIN
     GROUP BY maestra.Factura_Numero
 END;
 GO
-
 CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_detalle_factura
 AS
 BEGIN
@@ -897,21 +896,12 @@ BEGIN
 	    detalle_factura_cantidad,
 	    detalle_factura_subtotal
     )
-<<<<<<< HEAD
     SELECT DISTINCT
     factura.factura_numero,
     detalle.detalle_pedido_id,
 	detalle.pedido_det_precio,
     detalle.pedido_det_cantidad,
     detalle.pedido_det_subtotal
-=======
-    SELECT 
-   factura.factura_numero,
-   detalle.detalle_pedido_id,
-   maestra.Detalle_Factura_Precio,
-   maestra.Detalle_Factura_Cantidad,
-   maestra.Detalle_Factura_SubTotal
->>>>>>> be62b2c79d0ff4ab604581ed17fd050d9d942ed1
 	FROM gd_esquema.Maestra maestra
 	JOIN THIS_IS_FINE.Factura factura 
 		ON factura.factura_numero = maestra.Factura_Numero
@@ -919,31 +909,10 @@ BEGIN
 		ON p.pedido_numero = maestra.pedido_numero
 	JOIN THIS_IS_FINE.detalle_pedido detalle
 		ON detalle.pedido_numero = p.pedido_numero
-<<<<<<< HEAD
 	WHERE maestra.Detalle_Factura_SubTotal IS NOT NULL AND maestra.Pedido_Estado = 'ENTREGADO'
-=======
-	WHERE maestra.Detalle_Factura_SubTotal IS NOT NULL
-
->>>>>>> be62b2c79d0ff4ab604581ed17fd050d9d942ed1
 END;
 GO
 
-
-<<<<<<< HEAD
-SELECT * FROM THIS_IS_FINE.detalle_factura
-=======
-
->>>>>>> be62b2c79d0ff4ab604581ed17fd050d9d942ed1
--- select * from THIS_IS_FINE.detalle_pedido
-
--- select maestra.Pedido_Numero, Sillon_Modelo_Codigo, Detalle_Pedido_SubTotal from gd_esquema.Maestra as maestra
--- where maestra.Pedido_Numero='56360503'
--- group by sillon_modelo_codigo, maestra.pedido_numero, Detalle_Pedido_SubTotal
-
--- select * from gd_esquema.Maestra where Detalle_Pedido_Cantidad is not Null and Detalle_Factura_Cantidad is not NULL
--- select * from gd_esquema.Maestra where Pedido_Numero='56360503'
-
-go
 /*Migración de Proveedor*/
 
 CREATE PROCEDURE THIS_IS_FINE.migrar_proveedor
