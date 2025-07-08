@@ -552,8 +552,8 @@ GROUP BY ubicacion_id, tiempo_id, BI_sillon.modelo_id, rango_etario.rango_etario
 
 CREATE OR ALTER VIEW THIS_IS_FINE.BI_Ganancias_mensuales_por_sucursal AS
 SELECT 
-	tiempo.tiempo_anio as anio,
-	tiempo.tiempo_mes as mes,
+	CAST(tiempo.tiempo_anio AS VARCHAR(4)) + '-' + 
+	RIGHT('0' + CAST(tiempo.tiempo_mes AS VARCHAR(2)), 2) AS [anio-mes],
 	ubi.ubicacion_localidad as sucursal_localidad,
 	ubi.ubicacion_provincia as sucursal_provincia,
 	ISNULL(SUM(venta.total_vendido) - SUM(compra.compra_subtotal),0) as ganancia_mensual
