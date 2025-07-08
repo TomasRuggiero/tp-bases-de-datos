@@ -1146,3 +1146,4 @@ CREATE INDEX IX_Madera_Dureza ON THIS_IS_FINE.Madera(madera_dureza);
 CREATE INDEX IX_Tela_Color ON THIS_IS_FINE.Tela(tela_color);
 CREATE INDEX IX_Tela_Textura ON THIS_IS_FINE.Tela(tela_textura);
 CREATE INDEX IX_Relleno_Densidad ON THIS_IS_FINE.Relleno(relleno_densidad);
+
