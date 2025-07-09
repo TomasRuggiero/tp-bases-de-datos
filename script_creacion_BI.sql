@@ -666,23 +666,22 @@ GROUP BY estado.estado, tiempo_cuatrimestre, ubicacion.ubicacion_localidad, ubic
 
 ---- VISTA 6: TIEMPO PROMEDIO DE FABRICACI�N ----
 GO
-CREATE OR ALTER VIEW THIS_IS_FINE.PromedioTiempoFabriacion AS
-SELECT 
-    u.ubicacion_localidad AS sucursal_localidad,
-	u.ubicacion_provincia AS sucursal_provincia,
-	t.tiempo_anio,
-	t.tiempo_cuatrimestre,
-	THIS_IS_FINE.getTiempoPromedioFabricacion(u.ubicacion_id, t.tiempo_anio, t.tiempo_cuatrimestre)
-	AS tiempo_promedio_fabricacion
-FROM THIS_IS_FINE.BI_ubicacion u
-CROSS JOIN (
-     SELECT DISTINCT tiempo_anio, tiempo_cuatrimestre
-	 FROM THIS_IS_FINE.BI_tiempo
-)t
-WHERE THIS_IS_FINE.getTiempoPromedioFabricacion(u.ubicacion_id, t.tiempo_anio, t.tiempo_cuatrimestre) IS NOT NULL
-GO
-SELECT * FROM THIS_IS_FINE.PromedioTiempoFabriacion
-GO
+
+CREATE OR ALTER VIEW THIS_IS_FINE.BI_TiempoPromedioFabricacion AS
+SELECT
+    ubi.ubicacion_localidad AS [sucursal-localidad],
+	ubi.ubicacion_provincia AS [sucursal-provincia],
+    FORMAT(DATEFROMPARTS(tiempo.tiempo_anio, tiempo.tiempo_cuatrimestre, 1), 'yyyy-MM') AS [mes_anio],
+    SUM(venta.promedio_fabricacion * venta.sillones_vendidos) / NULLIF(SUM(venta.sillones_vendidos), 0) AS tiempo_promedio_fabricacion
+FROM THIS_IS_FINE.BI_Hecho_Venta venta
+JOIN THIS_IS_FINE.BI_tiempo tiempo ON venta.tiempo = tiempo.tiempo_id
+JOIN THIS_IS_FINE.BI_ubicacion ubi ON ubi.ubicacion_id = venta.ubicacion
+GROUP BY
+    ubi.ubicacion_localidad,
+	ubi.ubicacion_provincia,
+    tiempo.tiempo_anio,
+    tiempo.tiempo_cuatrimestre;
+
 ---- VISTA 7: PROMEDIO DE COMPRAS ----
 GO
 CREATE OR ALTER VIEW THIS_IS_FINE.v_promedio_compras_mensual AS
