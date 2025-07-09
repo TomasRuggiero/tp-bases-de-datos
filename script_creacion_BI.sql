@@ -557,18 +557,27 @@ CREATE OR ALTER VIEW THIS_IS_FINE.BI_Ganancias_mensuales_por_sucursal AS
 SELECT 
 	CAST(tiempo.tiempo_anio AS VARCHAR(4)) + '-' + 
 	RIGHT('0' + CAST(tiempo.tiempo_mes AS VARCHAR(2)), 2) AS [anio-mes],
-	ubi.ubicacion_localidad as sucursal_localidad,
-	ubi.ubicacion_provincia as sucursal_provincia,
-	ISNULL(SUM(venta.total_vendido) - SUM(compra.compra_subtotal),0) as ganancia_mensual
-FROM THIS_IS_FINE.BI_Hecho_Venta venta
-JOIN THIS_IS_FINE.BI_tiempo tiempo ON tiempo.tiempo_id = venta.tiempo 
-JOIN THIS_IS_FINE.BI_ubicacion ubi ON venta.ubicacion = ubi.ubicacion_id 
-LEFT JOIN THIS_IS_FINE.BI_Hecho_Compra compra ON compra.compra_tiempo = tiempo.tiempo_id AND compra.compra_ubicacion = ubi.ubicacion_id
-GROUP BY tiempo.tiempo_anio,
-	tiempo.tiempo_mes,
-	ubi.ubicacion_localidad,
-	ubi.ubicacion_provincia
-GO
+	ubi.ubicacion_localidad AS sucursal_localidad,
+	ubi.ubicacion_provincia AS sucursal_provincia,
+	ISNULL(ventas.total_vendido, 0) - ISNULL(compras.total_comprado, 0) AS ganancia_mensual
+FROM (
+	SELECT 
+		venta.tiempo,
+		venta.ubicacion,
+		SUM(venta.total_vendido) AS total_vendido
+	FROM THIS_IS_FINE.BI_Hecho_Venta venta
+	GROUP BY venta.tiempo, venta.ubicacion
+) ventas
+JOIN THIS_IS_FINE.BI_tiempo tiempo ON tiempo.tiempo_id = ventas.tiempo
+JOIN THIS_IS_FINE.BI_ubicacion ubi ON ubi.ubicacion_id = ventas.ubicacion
+LEFT JOIN (
+	SELECT 
+		compra.compra_tiempo AS tiempo,
+		compra.compra_ubicacion AS ubicacion,
+		SUM(compra.compra_subtotal) AS total_comprado
+	FROM THIS_IS_FINE.BI_Hecho_Compra compra
+	GROUP BY compra.compra_tiempo, compra.compra_ubicacion
+) compras ON compras.tiempo = ventas.tiempo AND compras.ubicacion = ventas.ubicacion
 
 --- Vista 2 ----
 CREATE OR ALTER VIEW THIS_IS_FINE.BI_FacturaPromedioMensual AS
