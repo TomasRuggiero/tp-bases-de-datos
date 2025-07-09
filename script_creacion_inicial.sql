@@ -886,7 +886,6 @@ BEGIN
     GROUP BY maestra.Factura_Numero
 END;
 GO
-
 CREATE OR ALTER PROCEDURE THIS_IS_FINE.migrar_detalle_factura
 AS
 BEGIN
@@ -910,24 +909,11 @@ BEGIN
 		ON p.pedido_numero = maestra.pedido_numero
 	JOIN THIS_IS_FINE.detalle_pedido detalle
 		ON detalle.pedido_numero = p.pedido_numero
-
 	WHERE maestra.Detalle_Factura_SubTotal IS NOT NULL AND maestra.Pedido_Estado = 'ENTREGADO'
-
 END;
 GO
 
 
-
--- select * from THIS_IS_FINE.detalle_pedido
-
--- select maestra.Pedido_Numero, Sillon_Modelo_Codigo, Detalle_Pedido_SubTotal from gd_esquema.Maestra as maestra
--- where maestra.Pedido_Numero='56360503'
--- group by sillon_modelo_codigo, maestra.pedido_numero, Detalle_Pedido_SubTotal
-
--- select * from gd_esquema.Maestra where Detalle_Pedido_Cantidad is not Null and Detalle_Factura_Cantidad is not NULL
--- select * from gd_esquema.Maestra where Pedido_Numero='56360503'
-
-go
 /*Migración de Proveedor*/
 
 CREATE PROCEDURE THIS_IS_FINE.migrar_proveedor
@@ -1161,3 +1147,4 @@ CREATE INDEX IX_Madera_Dureza ON THIS_IS_FINE.Madera(madera_dureza);
 CREATE INDEX IX_Tela_Color ON THIS_IS_FINE.Tela(tela_color);
 CREATE INDEX IX_Tela_Textura ON THIS_IS_FINE.Tela(tela_textura);
 CREATE INDEX IX_Relleno_Densidad ON THIS_IS_FINE.Relleno(relleno_densidad);
+
