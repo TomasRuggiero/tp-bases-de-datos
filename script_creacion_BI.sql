@@ -596,39 +596,47 @@ GROUP BY
 GO
 
 ---- VISTA 3: RENDIMIENTO DE MODELOS ----
-CREATE OR ALTER VIEW THIS_IS_FINE.BI_Rendimiento_Modelos 
-AS
-SELECT 
-	modelo.modelo_descripcion,
-	CAST(tiempo.tiempo_cuatrimestre AS VARCHAR) + '-' + CAST(tiempo.tiempo_anio AS VARCHAR) AS [cuatrimestre-a�o],
-	ubicacion.ubicacion_localidad,
-	rEtario.rango
-FROM THIS_IS_FINE.BI_modelo_sillon modelo
-JOIN THIS_IS_FINE.BI_Hecho_Venta venta ON venta.modelo_sillon = modelo.modelo_id
-JOIN THIS_IS_FINE.BI_ubicacion ubicacion ON venta.ubicacion = ubicacion.ubicacion_id
-JOIN THIS_IS_FINE.BI_tiempo tiempo ON tiempo_id = venta.tiempo
-JOIN THIS_IS_FINE.BI_rango_etario rEtario ON rEtario.rango_etario_id =  venta.rango_etario
-WHERE modelo.modelo_id IN (
-    SELECT TOP 3 modelo_id
-    FROM THIS_IS_FINE.BI_modelo_sillon
-    JOIN THIS_IS_FINE.BI_Hecho_Venta ON modelo_sillon = modelo_id
-    GROUP BY modelo_id
-    ORDER BY SUM(sillones_vendidos) DESC
-)
-GROUP BY ubicacion.ubicacion_localidad,tiempo.tiempo_cuatrimestre, tiempo.tiempo_anio, rEtario.rango, modelo.modelo_descripcion
-
+CREATE OR ALTER VIEW THIS_IS_FINE.BI_Rendimiento_Modelos AS
+SELECT
+    modelo_descripcion AS modelo,
+    CAST(tiempo_cuatrimestre AS VARCHAR) + '-' + CAST(tiempo_anio AS VARCHAR) AS [cuatrimestre-año],
+    localidad AS localidad,
+    rango AS [rango-etario],
+    sillones_vendidos AS [sillones-vendidos]
+FROM (
+    SELECT
+        modelo.modelo_descripcion,
+        tiempo.tiempo_cuatrimestre,
+        tiempo.tiempo_anio,
+        ubicacion.ubicacion_localidad AS localidad,
+        rEtario.rango,
+        venta.sillones_vendidos,
+        ROW_NUMBER() OVER (
+            PARTITION BY 
+                tiempo.tiempo_cuatrimestre, 
+                tiempo.tiempo_anio, 
+                ubicacion.ubicacion_localidad,
+                rEtario.rango_etario_id
+            ORDER BY venta.sillones_vendidos DESC
+        ) AS rn
+    FROM THIS_IS_FINE.BI_Hecho_Venta venta
+    JOIN THIS_IS_FINE.BI_modelo_sillon modelo ON venta.modelo_sillon = modelo.modelo_id
+    JOIN THIS_IS_FINE.BI_ubicacion ubicacion ON venta.ubicacion = ubicacion.ubicacion_id
+    JOIN THIS_IS_FINE.BI_tiempo tiempo ON tiempo.tiempo_id = venta.tiempo
+    JOIN THIS_IS_FINE.BI_rango_etario rEtario ON venta.rango_etario = rEtario.rango_etario_id
+) AS ranked
+WHERE rn <= 3
 
 
 ---- VISTA 4: VOLUMEN DE PEDIDOS ----
 
-GO
 CREATE OR ALTER VIEW THIS_IS_FINE.Volumen_Pedidos AS 
 SELECT 
 	COUNT(*) AS Cantidad_Pedidos,
 	ubicacion.ubicacion_localidad AS sucursal_localidad,
 	ubicacion.ubicacion_provincia AS sucursal_provincia,
 	turno AS turno,
-	CAST(tiempo.tiempo_mes AS VARCHAR) + '-' + CAST(tiempo.tiempo_anio AS VARCHAR) AS [mes-a�o]
+	FORMAT(DATEFROMPARTS(tiempo.tiempo_anio, tiempo.tiempo_mes, 1), 'yyyy-MM') AS [mes_anio]
 FROM THIS_IS_FINE.BI_Hecho_Pedido pedido
 JOIN THIS_IS_FINE.BI_tiempo tiempo ON pedido.hecho_pedido_tiempo = tiempo.tiempo_id
 JOIN THIS_IS_FINE.BI_ubicacion ubicacion ON pedido.hecho_pedido_ubicacion = ubicacion.ubicacion_id
@@ -637,7 +645,7 @@ JOIN THIS_IS_FINE.BI_turno_ventas ON pedido.pedido_turno_ventas = turno_id
 GROUP BY ubicacion.ubicacion_localidad, ubicacion.ubicacion_provincia, turno, tiempo.tiempo_mes, tiempo.tiempo_anio
 
 ---- VISTA 5: CONVERSION DE PEDIDOS ----
-GO
+
 CREATE OR ALTER VIEW THIS_IS_FINE.Conversion_Pedidos AS
 SELECT 
 	THIS_IS_FINE.getPorcentajePorEstado(estado.estado) AS porcentaje,
