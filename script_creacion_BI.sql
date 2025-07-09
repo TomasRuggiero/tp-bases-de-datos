@@ -509,6 +509,8 @@ GROUP BY t1.tiempo_id, t2.tiempo_id, ubicacion_id
 
 ---- INSERT HECHO VENTA -----
 
+DELETE FROM THIS_IS_FINE.BI_Hecho_Venta
+
 INSERT INTO THIS_IS_FINE.BI_Hecho_Venta(
 	ubicacion,
 	tiempo,
@@ -523,7 +525,7 @@ SELECT
 	   BI_sillon.modelo_id,
 	   rango_etario.rango_etario_id,
 	   SUM(df.detalle_factura_cantidad),
-	   SUM(factura_total),
+	   SUM(df.detalle_factura_subtotal),
 	   COUNT(DISTINCT factura_numero)
 FROM THIS_IS_FINE.Factura
 JOIN THIS_IS_FINE.BI_tiempo ON YEAR(factura_fecha) = tiempo_anio
@@ -541,6 +543,8 @@ JOIN THIS_IS_FINE.BI_modelo_sillon BI_sillon ON BI_sillon.modelo_descripcion = s
 JOIN THIS_IS_FINE.Cliente cliente ON Factura.factura_cliente = cliente.cliente_codigo
 JOIN THIS_IS_FINE.BI_rango_etario rango_etario ON THIS_IS_FINE.rangoEtario(cliente.cliente_fecha_nacimiento) = rango_etario.rango
 GROUP BY ubicacion_id, tiempo_id, BI_sillon.modelo_id, rango_etario.rango_etario_id
+
+
 ------  VISTAS  ------
 
 --DELETE FROM THIS_IS_FINE.BI_Hecho_Venta
