@@ -637,14 +637,14 @@ GROUP BY
     tiempo.tiempo_cuatrimestre;
 
 ---- VISTA 7: PROMEDIO DE COMPRAS ----
-GO
-CREATE OR ALTER VIEW THIS_IS_FINE.v_promedio_compras_mensual AS
+
+CREATE OR ALTER VIEW THIS_IS_FINE.BI_PromedioMensualCompras AS
 SELECT
-    tiempo.tiempo_anio AS anio,
-    tiempo.tiempo_mes AS mes,
-    ROUND(AVG(compra.compra_subtotal), 2) AS promedio_mensual
-FROM THIS_IS_FINE.BI_Hecho_Compra compra
-JOIN THIS_IS_FINE.BI_tiempo tiempo ON compra.compra_tiempo = tiempo.tiempo_id
+    tiempo.tiempo_anio,
+    tiempo.tiempo_mes,
+    AVG(DISTINCT hc.promedio_compra) AS promedio_mensual_compras
+FROM THIS_IS_FINE.BI_Hecho_Compra hc
+JOIN THIS_IS_FINE.BI_tiempo tiempo ON hc.compra_tiempo = tiempo.tiempo_id
 GROUP BY tiempo.tiempo_anio, tiempo.tiempo_mes;
 
 ---- VISTA 8: COMPRA POR TIPO DE MATERIAL ----
