@@ -155,6 +155,7 @@ CREATE TABLE THIS_IS_FINE.BI_Hecho_Venta(
 	sillones_vendidos INT,
 	cantidad_ventas INT,
 	total_vendido decimal(18,2),
+	promedio_fabricacion DECIMAL(5,2)
 
 	CONSTRAINT FK_Hecho_Venta_ubicacion FOREIGN KEY (ubicacion)
 		REFERENCES THIS_IS_FINE.BI_ubicacion (ubicacion_id),
@@ -165,11 +166,6 @@ CREATE TABLE THIS_IS_FINE.BI_Hecho_Venta(
 	CONSTRAINT FK_Hecho_Venta_rango_etario FOREIGN KEY (rango_etario)
 		REFERENCES THIS_IS_FINE.BI_rango_etario (rango_etario_id)
 )
-
--- ALTER TABLE THIS_IS_FINE.BI_Hecho_Venta
--- ADD total_vendido DECIMAL(12,2)
-
-SELECT * FROM THIS_IS_FINE.BI_Hecho_Venta
 
 CREATE TABLE THIS_IS_FINE.BI_Hecho_Envio (
 	envio_tiempo_programado INT,
@@ -330,34 +326,39 @@ GO
 
 GO
 CREATE OR ALTER FUNCTION THIS_IS_FINE.getTiempoPromedioFabricacion(
-    @ubicacion_id INT,
-    @anio INT,
-    @cuatrimestre INT
+    @ubicacion INT,
+	@tiempo INT,
+	@modelo_sillon INT,
+	@rango_etario INT
 )
 RETURNS DECIMAL(5,2)
 AS
 BEGIN
     DECLARE @promedio DECIMAL(5,2)
 
-    SELECT @promedio = AVG(
-        1.0 * (
-            (tv.tiempo_anio - tp.tiempo_anio) * 12 +
-            (tv.tiempo_mes - tp.tiempo_mes)
-        )
-    )
-    FROM THIS_IS_FINE.BI_Hecho_Pedido pedido
-    JOIN THIS_IS_FINE.BI_Hecho_Venta venta 
-        ON pedido.hecho_pedido_ubicacion = venta.ubicacion 
-    JOIN THIS_IS_FINE.BI_tiempo tp ON pedido.hecho_pedido_tiempo = tp.tiempo_id
-    JOIN THIS_IS_FINE.BI_tiempo tv ON venta.tiempo = tv.tiempo_id
-    WHERE pedido.hecho_pedido_ubicacion = @ubicacion_id
-      AND tp.tiempo_anio = @anio
-      AND tp.tiempo_cuatrimestre = @cuatrimestre
+    SELECT @promedio = AVG(CAST(DATEDIFF(DAY, ped.pedido_fecha, fac.factura_fecha) AS FLOAT))
+    FROM THIS_IS_FINE.Factura fac 
+	JOIN THIS_IS_FINE.detalle_factura detFac ON fac.factura_numero = detFac.detalle_factura_numero
+	JOIN THIS_IS_FINE.detalle_pedido detPed ON detPed.detalle_pedido_id = detFac.detalle_factura_pedido
+	JOIN THIS_IS_FINE.Pedido ped ON ped.pedido_numero = detPed.pedido_numero
+	JOIN THIS_IS_FINE.BI_tiempo tiempo ON YEAR(fac.factura_fecha) = tiempo.tiempo_anio
+		AND MONTH(fac.factura_fecha) = tiempo.tiempo_mes
+	JOIN THIS_IS_FINE.Sillon sillon ON detPed.sillon_id = sillon.sillon_id
+	JOIN THIS_IS_FINE.sillon_modelo modelo ON sillon.sillon_modelo = modelo.sillon_modelo_codigo
+	JOIN THIS_IS_FINE.BI_modelo_sillon BI_modelo ON modelo.sillon_modelo_descripcion = BI_modelo.modelo_descripcion
+	JOIN THIS_IS_FINE.Sucursal sucursal ON sucursal.sucursal_id = ped.pedido_sucursal
+	JOIN THIS_IS_FINE.Localidad localidad ON sucursal_localidad = localidad.localidad_codigo
+	JOIN THIS_IS_FINE.Provincia provincia ON localidad.localidad_provincia = provincia.provincia_codigo
+	JOIN THIS_IS_FINE.BI_ubicacion ubicacion ON provincia.provincia_detalle = ubicacion.ubicacion_provincia AND localidad.localidad_detalle = ubicacion.ubicacion_localidad
+	WHERE ubicacion.ubicacion_id = @ubicacion AND tiempo.tiempo_id = @tiempo AND  fac.factura_fecha >= ped.pedido_fecha
 
-    RETURN @promedio
+	RETURN ISNULL(@promedio,0)
 END
+
 GO
 --------  INSERCION DE DATOS  --------
+
+SELECT * FROM THIS_IS_FINE.detalle_pedido
 
 ----- INSERT UBICACIONES -----
 
@@ -518,7 +519,8 @@ INSERT INTO THIS_IS_FINE.BI_Hecho_Venta(
 	rango_etario,
 	sillones_vendidos,
 	total_vendido,
-	cantidad_ventas)
+	cantidad_ventas,
+	promedio_fabricacion)
 SELECT
        ubicacion_id,
 	   tiempo_id,
@@ -526,22 +528,25 @@ SELECT
 	   rango_etario.rango_etario_id,
 	   SUM(df.detalle_factura_cantidad),
 	   SUM(df.detalle_factura_subtotal),
-	   COUNT(DISTINCT factura_numero)
-FROM THIS_IS_FINE.Factura
-JOIN THIS_IS_FINE.BI_tiempo ON YEAR(factura_fecha) = tiempo_anio
-	AND THIS_IS_FINE.getCuatri(factura_fecha) = tiempo_cuatrimestre AND MONTH(factura_fecha) = tiempo_mes
-JOIN THIS_IS_FINE.Sucursal sucursal ON sucursal.sucursal_id = factura_sucursal
+	   COUNT(DISTINCT factura_numero),
+	   AVG(CAST(DATEDIFF(DAY, ped.pedido_fecha, fac.factura_fecha) AS FLOAT))
+FROM THIS_IS_FINE.Factura fac
+JOIN THIS_IS_FINE.BI_tiempo ON YEAR(fac.factura_fecha) = tiempo_anio
+	AND THIS_IS_FINE.getCuatri(fac.factura_fecha) = tiempo_cuatrimestre AND MONTH(fac.factura_fecha) = tiempo_mes
+JOIN THIS_IS_FINE.Sucursal sucursal ON sucursal.sucursal_id = fac.factura_sucursal
 JOIN THIS_IS_FINE.Localidad localidad ON sucursal_localidad = localidad.localidad_codigo
 JOIN THIS_IS_FINE.Provincia provincia ON localidad.localidad_provincia = provincia.provincia_codigo
 JOIN THIS_IS_FINE.BI_ubicacion ubicacion ON provincia.provincia_detalle = ubicacion.ubicacion_provincia
 	AND localidad.localidad_detalle = ubicacion.ubicacion_localidad
-JOIN THIS_IS_FINE.detalle_factura df ON factura_numero = df.detalle_factura_numero
+JOIN THIS_IS_FINE.detalle_factura df ON fac.factura_numero = df.detalle_factura_numero
 JOIN THIS_IS_FINE.detalle_pedido detPed ON detPed.detalle_pedido_id = df.detalle_factura_pedido
+JOIN THIS_IS_FINE.Pedido ped ON ped.pedido_numero = detPed.pedido_numero
 JOIN THIS_IS_FINE.Sillon sillon ON detPed.sillon_id = sillon.sillon_id
 JOIN THIS_IS_FINE.sillon_modelo sModelo ON sModelo.sillon_modelo_codigo = sillon.sillon_modelo
 JOIN THIS_IS_FINE.BI_modelo_sillon BI_sillon ON BI_sillon.modelo_descripcion = sModelo.sillon_modelo_descripcion
-JOIN THIS_IS_FINE.Cliente cliente ON Factura.factura_cliente = cliente.cliente_codigo
+JOIN THIS_IS_FINE.Cliente cliente ON fac.factura_cliente = cliente.cliente_codigo
 JOIN THIS_IS_FINE.BI_rango_etario rango_etario ON THIS_IS_FINE.rangoEtario(cliente.cliente_fecha_nacimiento) = rango_etario.rango
+WHERE fac.factura_fecha >= ped.pedido_fecha
 GROUP BY ubicacion_id, tiempo_id, BI_sillon.modelo_id, rango_etario.rango_etario_id
 
 
@@ -732,5 +737,4 @@ FROM THIS_IS_FINE.BI_Hecho_Envio e
 JOIN THIS_IS_FINE.BI_ubicacion u ON e.envio_ubicacion = u.ubicacion_id
 GROUP BY u.ubicacion_localidad, u.ubicacion_provincia
 ORDER BY promedio_costo_envio DESC
-
 GO
