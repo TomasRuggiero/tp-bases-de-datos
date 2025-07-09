@@ -343,6 +343,8 @@ BEGIN
         1.0 * (
 			(tv.tiempo_anio * 12 + tv.tiempo_mes) -
 			(tp.tiempo_anio* 12 + tp.tiempo_mes)
+			--inverti orden a fecha venta - fecha pedido
+			--antes:
             --(tv.tiempo_anio - tp.tiempo_anio) * 12 +
             --(tv.tiempo_mes - tp.tiempo_mes)
         )
@@ -355,8 +357,8 @@ BEGIN
     WHERE pedido.hecho_pedido_ubicacion = @ubicacion_id
       AND tp.tiempo_anio = @anio
       AND tp.tiempo_cuatrimestre = @cuatrimestre
-	  AND ( --filtro registros incorrectos
-         (tv.tiempo_anio * 12 + tv.tiempo_mes) >=
+	  AND (
+         (tv.tiempo_anio * 12 + tv.tiempo_mes) >= 
          (tp.tiempo_anio * 12 + tp.tiempo_mes)
       )
 
@@ -589,7 +591,7 @@ CREATE OR ALTER VIEW THIS_IS_FINE.BI_Rendimiento_Modelos
 AS
 SELECT 
 	modelo.modelo_descripcion,
-	CAST(tiempo.tiempo_cuatrimestre AS VARCHAR) + '-' + CAST(tiempo.tiempo_anio AS VARCHAR) AS [cuatrimestre-a�o],
+	CAST(tiempo.tiempo_cuatrimestre AS VARCHAR) + '-' + CAST(tiempo.tiempo_anio AS VARCHAR) AS [cuatrimestre-anio],
 	ubicacion.ubicacion_localidad,
 	rEtario.rango
 FROM THIS_IS_FINE.BI_modelo_sillon modelo
