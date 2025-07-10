@@ -250,8 +250,6 @@ END;
 
 --------  INSERCION DE DATOS  --------
 
-SELECT * FROM THIS_IS_FINE.detalle_pedido
-
 ----- INSERT UBICACIONES -----
 
 INSERT INTO THIS_IS_FINE.BI_ubicacion(ubicacion_provincia, ubicacion_localidad)
@@ -468,9 +466,14 @@ LEFT JOIN (
 	FROM THIS_IS_FINE.BI_Hecho_Compra compra
 	GROUP BY compra.compra_tiempo, compra.compra_ubicacion
 ) compras ON compras.tiempo = ventas.tiempo AND compras.ubicacion = ventas.ubicacion
+<<<<<<< HEAD
 
 --- Vista 2 FACTURA PROMEDIO MENSUAL ----
 
+=======
+go
+--- Vista 2 ----
+>>>>>>> eb93a9e1274298674479667fb737c66fe1ad34c4
 CREATE OR ALTER VIEW THIS_IS_FINE.BI_FacturaPromedioMensual AS
 SELECT
     t.tiempo_anio AS anio,
@@ -517,6 +520,10 @@ FROM (
     JOIN THIS_IS_FINE.BI_rango_etario rEtario ON venta.rango_etario = rEtario.rango_etario_id
 ) AS ranked
 WHERE rn <= 3
+<<<<<<< HEAD
+=======
+go
+>>>>>>> eb93a9e1274298674479667fb737c66fe1ad34c4
 
 ---- VISTA 4: VOLUMEN DE PEDIDOS ----
 
@@ -530,9 +537,13 @@ SELECT
 FROM THIS_IS_FINE.BI_Hecho_Pedido pedido
 JOIN THIS_IS_FINE.BI_tiempo tiempo ON pedido.tiempo = tiempo.tiempo_id
 JOIN THIS_IS_FINE.BI_ubicacion ubicacion ON pedido.ubicacion = ubicacion.ubicacion_id
+<<<<<<< HEAD
+=======
+--JOIN THIS_IS_FINE.BI_rango_etario rangoEtario ON rangoEtario.rango_etario_id = pedido.pedido_rango_etario
+>>>>>>> eb93a9e1274298674479667fb737c66fe1ad34c4
 JOIN THIS_IS_FINE.BI_turno_ventas ON pedido.turno_ventas = turno_id
 GROUP BY ubicacion.ubicacion_localidad, ubicacion.ubicacion_provincia, turno, tiempo.tiempo_mes, tiempo.tiempo_anio
-
+go
 ---- VISTA 5: CONVERSION DE PEDIDOS ----
 
 CREATE OR ALTER VIEW THIS_IS_FINE.BI_PorcentajePedidosPorEstado AS
@@ -553,7 +564,7 @@ GROUP BY
     tiempo.tiempo_anio,
     tiempo.tiempo_cuatrimestre,
     pedido.estado;
-
+go
 ---- VISTA 6: TIEMPO PROMEDIO DE FABRICACI�N ----
 
 CREATE OR ALTER VIEW THIS_IS_FINE.BI_TiempoPromedioFabricacion AS
@@ -570,7 +581,7 @@ GROUP BY
 	ubi.ubicacion_provincia,
     tiempo.tiempo_anio,
     tiempo.tiempo_cuatrimestre;
-
+go
 ---- VISTA 7: PROMEDIO DE COMPRAS ----
 
 CREATE OR ALTER VIEW THIS_IS_FINE.BI_PromedioMensualCompras AS
@@ -581,17 +592,26 @@ SELECT
 FROM THIS_IS_FINE.BI_Hecho_Compra hc
 JOIN THIS_IS_FINE.BI_tiempo tiempo ON hc.compra_tiempo = tiempo.tiempo_id
 GROUP BY tiempo.tiempo_anio, tiempo.tiempo_mes;
-
+go
 ---- VISTA 8: COMPRA POR TIPO DE MATERIAL ----
 
 CREATE OR ALTER VIEW THIS_IS_FINE.VW_compra_tipo_material_ubicacion_cuatrimestre AS
 SELECT 
+<<<<<<< HEAD
     tipo_material.tipo_material AS [tipo-material],
     ubicacion_sucursal.ubicacion_provincia AS [sucursal-provincia],
     ubicacion_sucursal.ubicacion_localidad AS [sucursal-localidad],
     tiempo.tiempo_anio AS [anio],
     tiempo.tiempo_cuatrimestre AS [cuatrimestre],
     '$' + FORMAT(SUM(compra.compra_subtotal), 'N2') AS [total-gastado]
+=======
+    tipo_material.tipo_material,
+    ubicacion_sucursal.ubicacion_provincia as sucursal_provincia,
+    ubicacion_sucursal.ubicacion_localidad as sucursal_localidad,
+    tiempo.tiempo_anio,
+    tiempo.tiempo_cuatrimestre,
+    SUM(compra.compra_subtotal) AS total_gastado
+>>>>>>> eb93a9e1274298674479667fb737c66fe1ad34c4
 FROM THIS_IS_FINE.BI_Hecho_Compra compra
 JOIN THIS_IS_FINE.BI_tipo_material tipo_material ON compra.compra_material = tipo_material.tipo_material_id
 JOIN THIS_IS_FINE.BI_ubicacion ubicacion_sucursal ON compra.compra_ubicacion = ubicacion_sucursal.ubicacion_id
