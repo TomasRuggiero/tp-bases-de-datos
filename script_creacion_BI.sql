@@ -160,10 +160,14 @@ CREATE TABLE THIS_IS_FINE.BI_Hecho_Venta(
 		REFERENCES THIS_IS_FINE.BI_rango_etario (rango_etario_id)
 )
 
+
 CREATE TABLE THIS_IS_FINE.BI_Hecho_Envio (
 	envio_tiempo_programado INT,
 	envio_tiempo_enviado INT,
 	envio_ubicacion INT,
+
+	envios_totales INT,
+	envios_en_fecha INT,
 	envio_total DECIMAL(18,2),
 	
 	CONSTRAINT FK_Hecho_Envio_tiempo_programado FOREIGN KEY (envio_tiempo_programado)
@@ -243,79 +247,6 @@ BEGIN
         ELSE 'INDETERMINADO'
     END;
 END;
-GO
-
-GO
-CREATE OR ALTER FUNCTION THIS_IS_FINE.getPorcentajePorEstado(@estado NVARCHAR(255))
-RETURNS NVARCHAR(50)
-AS
-BEGIN
-	DECLARE @cantidadPedidosTotales INT;
-	DECLARE @cantidadPedidosPorEstado INT;
-	DECLARE @porcentaje DECIMAL(5,2); -- ejemplo: 73.45
-	DECLARE @porcentajeTexto NVARCHAR(50);
-
-	SELECT @cantidadPedidosTotales = COUNT(*)
-	FROM THIS_IS_FINE.BI_Hecho_Pedido;
-
-	SELECT @cantidadPedidosPorEstado = COUNT(*)
-	FROM THIS_IS_FINE.BI_Hecho_Pedido pedido
-	JOIN THIS_IS_FINE.BI_estado_pedido ON pedido.estado = estado_id
-	WHERE pedido.estado = @estado;
-
-	IF @cantidadPedidosTotales = 0
-	BEGIN
-		SET @porcentaje = 0;
-	END
-	ELSE
-	BEGIN
-		SET @porcentaje = 
-			CAST(@cantidadPedidosPorEstado AS DECIMAL(12,2)) * 100.0 / 
-			CAST(@cantidadPedidosTotales AS DECIMAL(12,2));
-	END
-
-	SET @porcentajeTexto = CAST(@porcentaje AS NVARCHAR(50)) + '%';
-
-	RETURN @porcentajeTexto;
-END
-
-GO
-CREATE OR ALTER FUNCTION THIS_IS_FINE.getPorcentajeEnvios(
-     @anio INT,
-	 @mes INT
-)
-RETURNS NVARCHAR(50)
-AS
-BEGIN
-    DECLARE @cantidadEnviosTotales INT;
-	DECLARE @cantidadEnviosCumplidos INT;
-	DECLARE @porcentaje DECIMAL(5,2)
-	DECLARE @porcentajeTexto NVARCHAR(50);
-
-	SELECT @cantidadEnviosTotales = COUNT(*)
-	FROM THIS_IS_FINE.BI_Hecho_Envio e
-	JOIN THIS_IS_FINE.BI_tiempo t ON e.envio_tiempo_programado = t.tiempo_id
-	WHERE t.tiempo_anio = @anio AND t.tiempo_mes = @mes;
-
-	SELECT @cantidadEnviosCumplidos = COUNT(*)
-	FROM THIS_IS_FINE.BI_Hecho_Envio e
-	JOIN THIS_IS_FINE.BI_tiempo t1 ON e.envio_tiempo_programado = t1.tiempo_id
-	JOIN THIS_IS_FINE.BI_tiempo t2 ON e.envio_tiempo_enviado = t2.tiempo_id
-	WHERE t1.tiempo_anio = @anio AND t1.tiempo_mes = @mes
-	   AND t1.tiempo_anio = t2.tiempo_anio
-	   AND t1.tiempo_mes = t2.tiempo_mes
-	   AND t1.tiempo_cuatrimestre = t2.tiempo_cuatrimestre
-    
-	IF @cantidadEnviosTotales = 0
-	    SET @porcentaje = 0
-    ELSE 
-	    SET @porcentaje = CAST(@cantidadEnviosCumplidos * 100.0 / @cantidadEnviosTotales AS DECIMAL(5,2));
-    
-	SET @porcentajeTexto = CAST(@porcentaje AS NVARCHAR(50)) + '%';
-
-	RETURN @porcentajeTexto;
-END
-GO
 
 --------  INSERCION DE DATOS  --------
 
@@ -439,16 +370,21 @@ JOIN THIS_IS_FINE.BI_ubicacion ON prov.provincia_detalle = ubicacion_provincia A
 GROUP BY tiempo_id, BI_material.tipo_material_id, ubicacion_id
 
 ---- INSERT HECHO ENVIO ----
+SELECT * FROM THIS_IS_FINE.Envio
 
 INSERT INTO THIS_IS_FINE.BI_Hecho_Envio(
     envio_tiempo_programado,
 	envio_tiempo_enviado,
 	envio_ubicacion,
-	envio_total)
+	envios_totales,
+	envio_total,
+	envios_en_fecha)
 SELECT t1.tiempo_id,
        t2.tiempo_id,
 	   ubicacion_id,
-	   SUM(envio_total) as envio_total
+	   COUNT(*),
+	   SUM(envio_total),
+	   SUM(CASE WHEN envio_fecha_programada = envio_fecha THEN 1 ELSE 0 END) AS envios_en_fecha
 FROM THIS_IS_FINE.Envio
 JOIN THIS_IS_FINE.BI_tiempo t1 ON YEAR(envio_fecha_programada) = t1.tiempo_anio
 	AND THIS_IS_FINE.getCuatri(envio_fecha_programada) = t1.tiempo_cuatrimestre AND MONTH(envio_fecha_programada) = t1.tiempo_mes
@@ -533,7 +469,8 @@ LEFT JOIN (
 	GROUP BY compra.compra_tiempo, compra.compra_ubicacion
 ) compras ON compras.tiempo = ventas.tiempo AND compras.ubicacion = ventas.ubicacion
 
---- Vista 2 ----
+--- Vista 2 FACTURA PROMEDIO MENSUAL ----
+
 CREATE OR ALTER VIEW THIS_IS_FINE.BI_FacturaPromedioMensual AS
 SELECT
     t.tiempo_anio AS anio,
@@ -581,7 +518,6 @@ FROM (
 ) AS ranked
 WHERE rn <= 3
 
-
 ---- VISTA 4: VOLUMEN DE PEDIDOS ----
 
 CREATE OR ALTER VIEW THIS_IS_FINE.Volumen_Pedidos AS 
@@ -592,10 +528,9 @@ SELECT
 	turno AS turno,
 	FORMAT(DATEFROMPARTS(tiempo.tiempo_anio, tiempo.tiempo_mes, 1), 'yyyy-MM') AS [mes_anio]
 FROM THIS_IS_FINE.BI_Hecho_Pedido pedido
-JOIN THIS_IS_FINE.BI_tiempo tiempo ON pedido.hecho_pedido_tiempo = tiempo.tiempo_id
-JOIN THIS_IS_FINE.BI_ubicacion ubicacion ON pedido.hecho_pedido_ubicacion = ubicacion.ubicacion_id
---JOIN THIS_IS_FINE.BI_rango_etario rangoEtario ON rangoEtario.rango_etario_id = pedido.pedido_rango_etario
-JOIN THIS_IS_FINE.BI_turno_ventas ON pedido.pedido_turno_ventas = turno_id
+JOIN THIS_IS_FINE.BI_tiempo tiempo ON pedido.tiempo = tiempo.tiempo_id
+JOIN THIS_IS_FINE.BI_ubicacion ubicacion ON pedido.ubicacion = ubicacion.ubicacion_id
+JOIN THIS_IS_FINE.BI_turno_ventas ON pedido.turno_ventas = turno_id
 GROUP BY ubicacion.ubicacion_localidad, ubicacion.ubicacion_provincia, turno, tiempo.tiempo_mes, tiempo.tiempo_anio
 
 ---- VISTA 5: CONVERSION DE PEDIDOS ----
@@ -606,9 +541,9 @@ SELECT
 	ubicacion.ubicacion_provincia AS [sucursal-provincia],
 	FORMAT(DATEFROMPARTS(tiempo.tiempo_anio, tiempo.tiempo_cuatrimestre, 1), 'yyyy-MM') AS [mes_anio],
 	pedido.estado,
-    SUM(pedido.cantidad_pedidos) * 100.0 / NULLIF(SUM(SUM(pedido.cantidad_pedidos)) OVER (
-        PARTITION BY ubicacion.ubicacion_localidad, ubicacion.ubicacion_provincia, tiempo.tiempo_anio, tiempo.tiempo_cuatrimestre
-    ), 0) AS porcentaje_pedidos
+    FORMAT(SUM(pedido.cantidad_pedidos) * 100.0 / NULLIF(SUM(SUM(pedido.cantidad_pedidos)) OVER (
+    PARTITION BY ubicacion.ubicacion_localidad, ubicacion.ubicacion_provincia, tiempo.tiempo_anio, tiempo.tiempo_cuatrimestre
+	), 0), 'N2') + '%' AS porcentaje_pedidos
 FROM THIS_IS_FINE.BI_Hecho_Pedido pedido
 JOIN THIS_IS_FINE.BI_ubicacion ubicacion ON pedido.ubicacion = ubicacion.ubicacion_id
 JOIN THIS_IS_FINE.BI_tiempo tiempo ON pedido.tiempo = tiempo.tiempo_id
@@ -626,7 +561,7 @@ SELECT
     ubi.ubicacion_localidad AS [sucursal-localidad],
 	ubi.ubicacion_provincia AS [sucursal-provincia],
     FORMAT(DATEFROMPARTS(tiempo.tiempo_anio, tiempo.tiempo_cuatrimestre, 1), 'yyyy-MM') AS [mes_anio],
-    SUM(venta.promedio_fabricacion * venta.sillones_vendidos) / NULLIF(SUM(venta.sillones_vendidos), 0) AS tiempo_promedio_fabricacion
+    FORMAT(SUM(venta.promedio_fabricacion * venta.sillones_vendidos) / NULLIF(SUM(venta.sillones_vendidos), 0), 'N2') + ' días' AS tiempo_promedio_en_dias
 FROM THIS_IS_FINE.BI_Hecho_Venta venta
 JOIN THIS_IS_FINE.BI_tiempo tiempo ON venta.tiempo = tiempo.tiempo_id
 JOIN THIS_IS_FINE.BI_ubicacion ubi ON ubi.ubicacion_id = venta.ubicacion
@@ -642,21 +577,21 @@ CREATE OR ALTER VIEW THIS_IS_FINE.BI_PromedioMensualCompras AS
 SELECT
     tiempo.tiempo_anio,
     tiempo.tiempo_mes,
-    AVG(DISTINCT hc.promedio_compra) AS promedio_mensual_compras
+	'$' + FORMAT(AVG(DISTINCT hc.promedio_compra), 'N2') AS promedio_mensual_compras
 FROM THIS_IS_FINE.BI_Hecho_Compra hc
 JOIN THIS_IS_FINE.BI_tiempo tiempo ON hc.compra_tiempo = tiempo.tiempo_id
 GROUP BY tiempo.tiempo_anio, tiempo.tiempo_mes;
 
 ---- VISTA 8: COMPRA POR TIPO DE MATERIAL ----
-GO
+
 CREATE OR ALTER VIEW THIS_IS_FINE.VW_compra_tipo_material_ubicacion_cuatrimestre AS
 SELECT 
-    tipo_material.tipo_material,
-    ubicacion_sucursal.ubicacion_provincia,
-    ubicacion_sucursal.ubicacion_localidad,
-    tiempo.tiempo_anio,
-    tiempo.tiempo_cuatrimestre,
-    SUM(compra.compra_subtotal) AS total_gastado
+    tipo_material.tipo_material AS [tipo-material],
+    ubicacion_sucursal.ubicacion_provincia AS [sucursal-provincia],
+    ubicacion_sucursal.ubicacion_localidad AS [sucursal-localidad],
+    tiempo.tiempo_anio AS [anio],
+    tiempo.tiempo_cuatrimestre AS [cuatrimestre],
+    '$' + FORMAT(SUM(compra.compra_subtotal), 'N2') AS [total-gastado]
 FROM THIS_IS_FINE.BI_Hecho_Compra compra
 JOIN THIS_IS_FINE.BI_tipo_material tipo_material ON compra.compra_material = tipo_material.tipo_material_id
 JOIN THIS_IS_FINE.BI_ubicacion ubicacion_sucursal ON compra.compra_ubicacion = ubicacion_sucursal.ubicacion_id
@@ -669,25 +604,25 @@ GROUP BY
     tiempo.tiempo_cuatrimestre;
 
 ---- VISTA 9: PORCENTAJE DE CUMPLIMIENTO DE ENV�OS -----
-GO
+
 CREATE OR ALTER VIEW THIS_IS_FINE.Porcentaje_Cumplimiento_Envios AS
 SELECT
-    DISTINCT
 	t.tiempo_anio AS anio,
 	t.tiempo_mes AS mes,
-	THIS_IS_FINE.getPorcentajeEnvios(t.tiempo_anio, t.tiempo_mes) AS porcentaje_cumplimiento
+	FORMAT(SUM(envios_en_fecha) * 100.0 / NULLIF(SUM(envios_totales), 0), 'N2') + '%' AS porcentaje_cumplimiento
 FROM THIS_IS_FINE.BI_tiempo t
 JOIN THIS_IS_FINE.BI_Hecho_Envio e ON e.envio_tiempo_programado = t.tiempo_id
+GROUP BY t.tiempo_anio, t.tiempo_mes
 
 ---- VISTA 10: LOCALIDADES QUE PAGAN MAYOR COSTO DE ENVIO -----     
-GO
-CREATE OR ALTER VIEW THIS_IS_FINE.Envio_Localidad AS
+
+CREATE OR ALTER VIEW THIS_IS_FINE.Localidades_Envios_Mas_Caros AS
 SELECT TOP 3 
 	u.ubicacion_localidad AS localidad,
 	u.ubicacion_provincia AS provincia, --traigo tambi�n la provincia porque podr�an existir localidades con el mismo nombre en distintas provincias
-	AVG(e.envio_total) AS promedio_costo_envio
+	'$' + FORMAT(AVG(e.envio_total), 'N2') AS promedio_costo_envio
 FROM THIS_IS_FINE.BI_Hecho_Envio e
 JOIN THIS_IS_FINE.BI_ubicacion u ON e.envio_ubicacion = u.ubicacion_id
 GROUP BY u.ubicacion_localidad, u.ubicacion_provincia
-ORDER BY promedio_costo_envio DESC
-GO
+ORDER BY AVG(e.envio_total) DESC
+
