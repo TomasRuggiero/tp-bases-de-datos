@@ -619,8 +619,10 @@ CREATE OR ALTER VIEW THIS_IS_FINE.Localidades_Envios_Mas_Caros AS
 SELECT TOP 3 
 	u.ubicacion_localidad AS localidad,
 	u.ubicacion_provincia AS provincia, --traigo tambi�n la provincia porque podr�an existir localidades con el mismo nombre en distintas provincias
-	'$' + FORMAT(AVG(e.envio_total), 'N2') AS promedio_costo_envio
+	'$' + FORMAT(SUM(envio_total)/SUM(envios_totales), 'N2') AS promedio_costo_envio
 FROM THIS_IS_FINE.BI_Hecho_Envio e
 JOIN THIS_IS_FINE.BI_ubicacion u ON e.envio_ubicacion = u.ubicacion_id
 GROUP BY u.ubicacion_localidad, u.ubicacion_provincia
-ORDER BY AVG(e.envio_total) DESC
+ORDER BY SUM(envio_total)/SUM(envios_totales) DESC
+
+
