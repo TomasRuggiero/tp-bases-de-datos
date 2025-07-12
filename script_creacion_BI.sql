@@ -1,4 +1,4 @@
-
+use GD1C2025
 
 -------- SCRIPT CREACION BI --------
 IF OBJECT_ID('THIS_IS_FINE.BI_Ganancias_mensuales_por_sucursal', 'V') IS NOT NULL
@@ -384,7 +384,7 @@ SELECT
 	SUM(detalle.detalle_compra_cantidad), 
 	ubicacion_id, 
 	SUM(detalle.detalle_compra_subtotal), 
-	AVG(compra.compra_total)
+	AVG(compra.compra_total) 
 FROM THIS_IS_FINE.Compra compra 
 JOIN THIS_IS_FINE.detalle_compra detalle ON detalle.detalle_compra_numero = compra.compra_numero
 JOIN THIS_IS_FINE.Material material ON material.id_material = detalle.detalle_compra_material

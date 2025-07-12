@@ -3,8 +3,6 @@
 use GD1C2025;
 GO
 
-SELECT * FROM THIS_IS_FINE.detalle_factura
-SELECT * FROM THIS_IS_FINE.detalle_pedido
 
 
 
